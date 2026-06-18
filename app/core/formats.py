@@ -1,0 +1,38 @@
+INPUT_FORMATS: frozenset[str] = frozenset({
+    "azw", "azw3", "azw4", "cb7", "cbc", "cbr", "cbz", "chm", "djvu",
+    "docx", "epub", "fb2", "fbz", "html", "htmlz", "imp", "kepub", "lit",
+    "lrf", "lrx", "mobi", "odt", "oebzip", "pdb", "pdf", "pml", "pmlz",
+    "pobi", "prc", "rb", "rtf", "snb", "tcr", "txt", "txtz", "updb",
+    "xhtml", "xhtm", "zip",
+})
+
+OUTPUT_FORMATS: frozenset[str] = frozenset({
+    "azw3", "docx", "epub", "fb2", "htmlz", "kepub", "lit", "lrf",
+    "mobi", "oeb", "pdb", "pmlz", "rb", "rtf", "snb", "tcr", "txt",
+    "txtz", "zip",
+})
+
+MIME_TYPES: dict[str, str] = {
+    "azw":   "application/vnd.amazon.mobi8-ebook",
+    "azw3":  "application/vnd.amazon.mobi8-ebook",
+    "azw4":  "application/vnd.amazon.mobi8-ebook",
+    "docx":  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "epub":  "application/epub+zip",
+    "fb2":   "application/x-fictionbook+xml",
+    "htmlz": "application/zip",
+    "kepub": "application/epub+zip",
+    "lit":   "application/x-ms-reader",
+    "lrf":   "application/x-sony-bbeb",
+    "mobi":  "application/x-mobipocket-ebook",
+    "oeb":   "application/oebps-package+xml",
+    "pdb":   "application/x-pilot",
+    "pmlz":  "application/zip",
+    "rb":    "application/x-rocketbook",
+    "rtf":   "application/rtf",
+    "snb":   "application/x-snb",
+    "tcr":   "application/x-tcr-ebook",
+    "txt":   "text/plain",
+    "txtz":  "application/zip",
+    "zip":   "application/zip",
+    "pdf":   "application/pdf",
+}

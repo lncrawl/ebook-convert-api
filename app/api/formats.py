@@ -1,0 +1,26 @@
+from fastapi import APIRouter, HTTPException
+
+from app.core.formats import INPUT_FORMATS, OUTPUT_FORMATS
+from app.core.introspector import parse_format_options
+from app.models.introspection import FormatList, OptionMetadata
+
+router = APIRouter(prefix="/formats")
+
+
+@router.get("", response_model=FormatList)
+async def list_formats() -> FormatList:
+    return FormatList(
+        input_formats=sorted(INPUT_FORMATS),
+        output_formats=sorted(OUTPUT_FORMATS),
+    )
+
+
+@router.get("/{in_fmt}/{out_fmt}/options", response_model=list[OptionMetadata])
+async def format_options(in_fmt: str, out_fmt: str) -> list[OptionMetadata]:
+    in_fmt = in_fmt.lower()
+    out_fmt = out_fmt.lower()
+    if in_fmt not in INPUT_FORMATS:
+        raise HTTPException(status_code=404, detail=f"Unsupported input format: {in_fmt}")
+    if out_fmt not in OUTPUT_FORMATS:
+        raise HTTPException(status_code=404, detail=f"Unsupported output format: {out_fmt}")
+    return parse_format_options(in_fmt, out_fmt)
