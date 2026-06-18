@@ -1,0 +1,91 @@
+name: Bug report
+description: Something isn't working as expected
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill in as much detail as possible.
+
+  - type: input
+    id: calibre-version
+    attributes:
+      label: Calibre version
+      description: Value of `calibre_version` from `GET /health`
+      placeholder: "9.9.0"
+    validations:
+      required: true
+
+  - type: input
+    id: image-version
+    attributes:
+      label: Docker image version / git SHA
+      placeholder: "latest / abc1234"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: input-format
+    attributes:
+      label: Input format
+      options:
+        - epub
+        - mobi
+        - azw3
+        - pdf
+        - docx
+        - fb2
+        - html
+        - txt
+        - other (describe below)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: output-format
+    attributes:
+      label: Output format
+      options:
+        - epub
+        - mobi
+        - azw3
+        - pdf
+        - docx
+        - fb2
+        - txt
+        - other (describe below)
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the full `curl` command or API call if possible
+      placeholder: |
+        1. `curl -F "file=@book.epub" -F "output_format=mobi" http://localhost:8000/convert`
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the full error response body if applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: options
+    attributes:
+      label: Conversion options used
+      description: The `options` JSON you passed, if any
+      render: json

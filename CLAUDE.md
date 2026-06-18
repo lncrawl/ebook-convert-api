@@ -1,6 +1,6 @@
 # ebook-convert-api
 
-HTTP API wrapping Calibre's `ebook-convert` pipeline. Accepts a file upload, returns the converted ebook. Single synchronous call — no job queue, no disk accumulation.
+HTTP API wrapping Calibre's `ebook-convert` pipeline. Accepts a file upload, returns the converted ebook.
 
 ## Stack
 

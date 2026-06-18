@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Calibre documentation
+    url: https://manual.calibre-ebook.com/generated/en/ebook-convert.html
+    about: Reference for all ebook-convert options
