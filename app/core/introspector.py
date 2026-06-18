@@ -15,8 +15,8 @@ def parse_format_options(in_fmt: str, out_fmt: str) -> list[OptionMetadata]:
     the input and output plugins to gather their option definitions.
     """
     try:
-        from calibre.ebooks.conversion.plumber import Plumber
         from calibre.customize.ui import plugin_for_input_format, plugin_for_output_format
+        from calibre.ebooks.conversion.plumber import Plumber
     except ImportError:
         return []
 
@@ -51,15 +51,19 @@ def parse_format_options(in_fmt: str, out_fmt: str) -> list[OptionMetadata]:
         option_strings: list[str] = list(getattr(rec, "option_strings", []) or [])
         cli_flag = next((s for s in option_strings if s.startswith("--")), name)
 
-        results.append(OptionMetadata(
-            name=name,
-            cli_flag=cli_flag,
-            help=(getattr(rec, "help", None) or "").replace("%default", str(getattr(rec, "default", ""))),
-            type=opt_type,
-            default=getattr(rec, "default", None),
-            choices=list(choices) if choices else None,
-            group=group,
-        ))
+        results.append(
+            OptionMetadata(
+                name=name,
+                cli_flag=cli_flag,
+                help=(getattr(rec, "help", None) or "").replace(
+                    "%default", str(getattr(rec, "default", ""))
+                ),
+                type=opt_type,
+                default=getattr(rec, "default", None),
+                choices=list(choices) if choices else None,
+                group=group,
+            )
+        )
 
     def _collect_plugin_options(plugin: object, group_label: str) -> None:
         for rec in getattr(plugin, "options", []) or []:
@@ -70,7 +74,6 @@ def parse_format_options(in_fmt: str, out_fmt: str) -> list[OptionMetadata]:
 
     # Also collect universal options via a dummy Plumber option parser
     try:
-        import io
         import optparse
 
         parser = optparse.OptionParser()

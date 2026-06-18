@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     max_concurrent_jobs: int = Field(default=0, ge=0)  # 0 = auto-size from cgroups
 
     @model_validator(mode="after")
-    def resolve_concurrency(self) -> "Settings":
+    def resolve_concurrency(self) -> Settings:
         if self.max_concurrent_jobs == 0:
             cpu_limit = _cgroup_cpu_count()
             mem_limit = max(1, _cgroup_memory_limit_mb() // self.memory_per_job_mb)

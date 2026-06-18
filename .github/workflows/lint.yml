@@ -20,7 +20,11 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Syntax check
-        run: |
-          find app -name "*.py" | xargs uv run python -m py_compile
-          echo "All files OK"
+      - name: Ruff lint
+        run: uv run ruff check app/
+
+      - name: Ruff format check
+        run: uv run ruff format --check app/
+
+      - name: Pyright type check
+        run: uv run pyright

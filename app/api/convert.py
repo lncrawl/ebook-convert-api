@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
@@ -38,7 +37,7 @@ async def convert_file(
         raise HTTPException(
             status_code=400,
             detail=f"Cannot determine input format from filename {file.filename!r}. "
-                   f"Rename the file to include a supported extension.",
+            f"Rename the file to include a supported extension.",
         )
 
     # Parse and validate options

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import asyncio
+from collections.abc import AsyncGenerator
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
-import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -14,7 +14,7 @@ from app.config import settings
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     executor = ProcessPoolExecutor(max_workers=settings.max_concurrent_jobs)
     semaphore = asyncio.Semaphore(settings.max_concurrent_jobs)
     state.set_executor(executor)
@@ -42,6 +42,7 @@ def create_app() -> FastAPI:
 
     if settings.use_auth:
         from app.middleware.auth import AuthMiddleware
+
         app.add_middleware(AuthMiddleware)
 
     app.include_router(health.router)

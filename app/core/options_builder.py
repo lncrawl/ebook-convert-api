@@ -6,12 +6,14 @@ from app.models.options_universal import ConversionOptions
 
 # These flags accept filesystem paths and could be exploited to leak or write
 # files on the conversion worker. Block them regardless of what the caller sends.
-_DENYLIST: frozenset[str] = frozenset({
-    "debug_pipeline",
-    "extract_to",
-    "transform_css_rules",
-    "cover",
-})
+_DENYLIST: frozenset[str] = frozenset(
+    {
+        "debug_pipeline",
+        "extract_to",
+        "transform_css_rules",
+        "cover",
+    }
+)
 
 
 def build_plumber_options(options: ConversionOptions) -> SimpleNamespace:
