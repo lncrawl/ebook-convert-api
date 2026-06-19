@@ -1,5 +1,9 @@
 # ebook-convert-api
 
+[![Lint](https://github.com/lncrawl/ebook-convert-api/actions/workflows/lint.yml/badge.svg)](https://github.com/lncrawl/ebook-convert-api/actions/workflows/lint.yml)
+[![Docker build](https://github.com/lncrawl/ebook-convert-api/actions/workflows/docker-build.yml/badge.svg)](https://github.com/lncrawl/ebook-convert-api/actions/workflows/docker-build.yml)
+[![Dependabot Updates](https://github.com/lncrawl/ebook-convert-api/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/lncrawl/ebook-convert-api/actions/workflows/dependabot/dependabot-updates)
+
 A minimal Docker HTTP API that wraps [Calibre's `ebook-convert`](https://manual.calibre-ebook.com/generated/en/ebook-convert.html) pipeline. Upload a file, get the converted ebook back. Uses the official Calibre Linux binary — no source build required.
 
 ## Quick start
