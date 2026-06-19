@@ -19,18 +19,27 @@ build-backend = "hatchling.build"
 packages = ["app"]
 
 [dependency-groups]
-dev = ["poethepoet>=0.32", "pyright>=1.1.410", "ruff>=0.15.17"]
+dev = ["poethepoet>=0.32", "pyright>=1.1.410", "ruff>=0.15.17", "pytest>=8"]
 
 [tool.poe.tasks]
-lint = "ruff check app scripts"
-fmt = "ruff format app scripts"
+lint = "ruff check app scripts tests"
+format = "ruff format app scripts tests"
 typecheck = "pyright"
 generate-catalog = """
     calibre-debug
         -e scripts/calibre_introspect.py
         data/catalog.json
 """
+test = "pytest tests/ -v"
 build = "docker build -t ebook-convert-api ."
+start = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+watch = """
+    uvicorn app.main:app
+        --host 0.0.0.0
+        --port 8000
+        --reload
+        --reload-dir /app/app
+"""
 up = """
     docker run
         --rm
@@ -82,6 +91,10 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
 
 [tool.pyright]
 pythonVersion = "3.14"

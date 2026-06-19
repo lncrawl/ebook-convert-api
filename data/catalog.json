@@ -1,5 +1,24 @@
 {
+  "calibre_version": "9.9.0",
   "common_options": {
+    "Debug": [
+      {
+        "choices": null,
+        "cli_flag": "--debug-pipeline",
+        "default": null,
+        "help": "Save the output from different stages of the conversion pipeline to the specified folder. Useful if you are unsure at which stage of the conversion process a bug is occurring.",
+        "name": "debug_pipeline",
+        "type": "str"
+      },
+      {
+        "choices": null,
+        "cli_flag": "--verbose",
+        "default": 0,
+        "help": "Level of verbosity. Specify multiple times for greater verbosity. Specifying it twice will result in full verbosity, once medium verbosity and zero times least verbosity.",
+        "name": "verbose",
+        "type": "int"
+      }
+    ],
     "General": [
       {
         "choices": [

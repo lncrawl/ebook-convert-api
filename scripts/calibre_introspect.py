@@ -5,7 +5,7 @@ Generate a Calibre conversion option catalog.
 
 Usage:
 
-    calibre-debug -e calibre_introspect.py catalog.json
+    calibre-debug -e calibre_introspect.py ./data/catalog.json
 """
 
 import json
@@ -13,17 +13,18 @@ import sys
 import tempfile
 from pathlib import Path
 
-from calibre.customize.ui import (  # pyright: ignore[reportMissingImports]
+from calibre.constants import __version__
+from calibre.customize.ui import (
     initialize_plugins,
     input_format_plugins,
     output_format_plugins,
 )
-from calibre.ebooks.conversion.cli import (  # pyright: ignore[reportMissingImports]
+from calibre.ebooks.conversion.cli import (
     add_pipeline_options,
 )
-from calibre.ebooks.conversion.plumber import Plumber  # pyright: ignore[reportMissingImports]
-from calibre.utils.config import OptionParser  # pyright: ignore[reportMissingImports]
-from calibre.utils.logging import Log  # pyright: ignore[reportMissingImports]
+from calibre.ebooks.conversion.plumber import Plumber
+from calibre.utils.config import OptionParser
+from calibre.utils.logging import Log
 
 initialize_plugins()
 
@@ -157,9 +158,10 @@ def collect_common_options():
 
 
 catalog = {
+    "calibre_version": __version__,
+    "common_options": {},
     "input_plugins": {},
     "output_plugins": {},
-    "common_options": {},
 }
 
 for plugin in input_format_plugins():
@@ -208,5 +210,5 @@ output = json.dumps(
     sort_keys=True,
     allow_nan=True,
 )
-output_path.parent.mkdir(exist_ok=True)
+output_path.parent.mkdir(exist_ok=True, parents=True)
 output_path.write_text(output)
