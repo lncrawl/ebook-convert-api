@@ -11,14 +11,19 @@ HTTP API wrapping Calibre's `ebook-convert` pipeline. Accepts a file upload, ret
 ## Commands
 
 ```sh
-# Build image (pin Calibre version via build arg)
-docker build --build-arg CALIBRE_VERSION=9.9.0 -t ebook-convert-api .
+# Build image (generates format stubs at build time)
+poe build
 
-# Run (resource limits drive concurrency auto-sizing)
-docker run -p 8000:8000 --cpus=2 --memory=2g ebook-convert-api
+# Run production container
+poe up
 
-# Local dev (requires Calibre installed with ebook-convert on PATH)
-uv run uvicorn app.main:app --reload
+# Run dev container (live-reloads on local file changes via bind-mount)
+poe dev
+
+# Lint / format / typecheck
+poe lint
+poe fmt
+poe typecheck
 
 # Dependency management
 uv add <pkg>          # add a dependency
@@ -29,11 +34,13 @@ uv lock --upgrade     # upgrade all deps, regenerate uv.lock
 
 | File | Purpose |
 | ---- | ------- |
-| `Dockerfile` | Two-stage build: install official Calibre binary → slim runtime |
+| `Dockerfile` | Two-stage build: install official Calibre binary → slim runtime; generates format stubs at build time |
+| `scripts/calibre_introspect.py` | Run by `calibre-debug -e` during build; introspects one format pair and prints JSON |
+| `scripts/generate_stubs.py` | Build-time script; iterates all format pairs and writes stubs to `data/format_stubs/` |
 | `app/config.py` | Settings + cgroup-aware `max_concurrent_jobs` |
 | `app/state.py` | Shared `ProcessPoolExecutor` + `asyncio.Semaphore` |
 | `app/core/converter.py` | Calls `ebook-convert` CLI via subprocess (runs in executor worker) |
-| `app/core/introspector.py` | Uses `calibre-debug` to introspect format options |
+| `app/core/introspector.py` | Loads pre-generated format option stubs from `data/format_stubs/` |
 | `app/core/options_builder.py` | Maps `ConversionOptions` → Plumber `SimpleNamespace` |
 | `app/api/convert.py` | `POST /convert` endpoint |
 

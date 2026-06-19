@@ -19,10 +19,44 @@ build-backend = "hatchling.build"
 packages = ["app"]
 
 [dependency-groups]
-dev = [
-    "pyright>=1.1.410",
-    "ruff>=0.15.17",
-]
+dev = ["poethepoet>=0.32", "pyright>=1.1.410", "ruff>=0.15.17"]
+
+[tool.poe.tasks]
+lint = "ruff check app scripts"
+fmt = "ruff format app scripts"
+typecheck = "pyright"
+generate-stubs = """
+    calibre-debug
+        -e scripts/calibre_introspect.py
+        data/output.json
+"""
+build = "docker build -t ebook-convert-api ."
+up = """
+    docker run
+        --rm
+        -p 8000:8000
+        --cpus=2
+        --memory=2g
+        --name ebook-convert
+        ebook-convert-api
+"""
+dev = """
+  docker run
+    --rm
+    -p 8000:8000
+    --cpus=2
+    --memory=4g
+    -v ${POE_ROOT}/app:/app/app
+    -v ${POE_ROOT}/data:/app/data
+    -v ${POE_ROOT}/scripts:/app/scripts
+    --name ebook-convert-dev
+    ebook-convert-api
+    /app/.venv/bin/uvicorn app.main:app
+        --host 0.0.0.0
+        --port 8000
+        --reload
+        --reload-dir /app/app
+"""
 
 [tool.ruff]
 target-version = "py314"
@@ -30,18 +64,20 @@ line-length = 100
 
 [tool.ruff.lint]
 select = [
-    "E",   # pycodestyle errors
-    "W",   # pycodestyle warnings
-    "F",   # pyflakes
-    "I",   # isort
-    "UP",  # pyupgrade
-    "B",   # flake8-bugbear
-    "C4",  # flake8-comprehensions
+    "E", # pycodestyle errors
+    "W", # pycodestyle warnings
+    "F", # pyflakes
+    "I", # isort
+    "UP", # pyupgrade
+    "B", # flake8-bugbear
+    "C4", # flake8-comprehensions
     "RUF", # ruff-specific
+
 ]
 ignore = [
-    "E501",  # line too long (formatter handles it)
-    "B008",  # function calls in default arguments (FastAPI patterns use this)
+    "E501", # line too long (formatter handles it)
+    "B008", # function calls in default arguments (FastAPI patterns use this)
+
 ]
 
 [tool.ruff.lint.isort]

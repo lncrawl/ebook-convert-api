@@ -206,6 +206,9 @@ tempCodeRunnerFile.py
 # Ruff stuff:
 .ruff_cache/
 
+# Generated build-time stubs (baked into Docker image)
+data/
+
 # PyPI configuration file
 .pypirc
 

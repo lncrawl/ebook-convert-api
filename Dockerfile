@@ -54,6 +54,9 @@ ENV PATH="/opt/calibre:${PATH}"
 # Root user
 WORKDIR /app
 
+COPY scripts/calibre_introspect.py ./scripts/calibre_introspect.py
+RUN calibre-debug -e ./scripts/calibre_introspect.py ./data/output.json
+
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-editable
 

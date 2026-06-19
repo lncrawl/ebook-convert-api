@@ -67,7 +67,7 @@ Returns the full list of supported input and output formats.
 
 ### `GET /formats/{in_fmt}/{out_fmt}/options`
 
-Returns parsed Calibre option metadata for a specific format pair — useful for building UIs or validating `extra_options` keys.
+Returns Calibre option metadata for a specific format pair (pre-generated at image build time) — useful for building UIs or validating `extra_options` keys.
 
 ### `GET /health`
 
@@ -151,31 +151,36 @@ So `docker run --cpus=2 --memory=1g` → 2 workers from CPU but only `1024 / 256
 
 ## Building
 
-```sh
-# Build with pinned Calibre version
-docker build --build-arg CALIBRE_VERSION=9.9.0 -t ebook-convert-api .
-
-# Run with explicit resource limits (drives concurrency auto-sizing)
-docker run -p 8000:8000 --cpus=2 --memory=2g ebook-convert-api
-```
-
-To upgrade Calibre: change `CALIBRE_VERSION`, rebuild.
-
-**docker-compose:**
+Install [`uv`](https://docs.astral.sh/uv/) and [`poethepoet`](https://github.com/nat-n/poethepoet), then:
 
 ```sh
-docker compose up --build
+uv sync
 ```
+
+The `poe` task runner wraps all common workflows:
+
+```sh
+poe build        # docker build -t ebook-convert-api .
+poe up           # run production container on :8000
+poe dev          # run dev container with live-reload (bind-mounts ./app)
+poe lint         # ruff check
+poe fmt          # ruff format
+poe typecheck    # pyright
+```
+
+To upgrade Calibre: change `CALIBRE_VERSION` in the Dockerfile, then `poe build`.
+
+> **Note:** Format option stubs (`data/format_stubs/`) are generated automatically during `docker build` by running `calibre-debug` against every supported format pair. They are gitignored — do not commit them.
 
 ---
 
 ## Development
 
-Prerequisites: Python 3.14, [`uv`](https://docs.astral.sh/uv/), and Calibre installed locally with `ebook-convert` on your `PATH`.
+The app always runs inside Docker. `poe dev` bind-mounts `./app` into the container and starts uvicorn with `--reload`, so local edits trigger an automatic server restart without rebuilding the image.
 
 ```sh
-uv sync
-uv run uvicorn app.main:app --reload
+poe dev
+# edit any file under app/ → server reloads automatically
 ```
 
 Add a dependency:
