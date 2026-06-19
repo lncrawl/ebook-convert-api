@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-
-from app.models.options_universal import ConversionOptions
+from typing import Any
 
 # These flags accept filesystem paths and could be exploited to leak or write
 # files on the conversion worker. Block them regardless of what the caller sends.
@@ -16,23 +15,17 @@ _DENYLIST: frozenset[str] = frozenset(
 )
 
 
-def build_plumber_options(options: ConversionOptions) -> SimpleNamespace:
-    """Convert a ConversionOptions model into a SimpleNamespace for Plumber.merge_ui_recommendations."""
+def build_plumber_options(options: dict[str, Any]) -> SimpleNamespace:
+    """Map a {name: value} options dict to a SimpleNamespace for Plumber.
+
+    Keys match the option names returned by GET /formats/{in}/{out}/options.
+    A null/None value means a boolean flag (passed with no argument to the CLI).
+    Keys not present in the dict are not set (Calibre uses its own defaults).
+    """
     ns: dict[str, object] = {}
-
-    for key, value in options.model_dump(exclude_none=True).items():
-        if key == "extra_options":
-            continue
-        if key in _DENYLIST:
-            continue
-        ns[key] = value
-
-    for raw_key, value in (options.extra_options or {}).items():
-        # Normalise: strip leading --, replace hyphens with underscores
+    for raw_key, raw_value in options.items():
         key = raw_key.lstrip("-").replace("-", "_")
         if key in _DENYLIST:
             continue
-        # Boolean flags passed with null value become True
-        ns[key] = True if value is None else value
-
+        ns[key] = True if raw_value is None else raw_value
     return SimpleNamespace(**ns)

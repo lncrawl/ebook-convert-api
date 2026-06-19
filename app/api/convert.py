@@ -10,9 +10,8 @@ from fastapi.responses import FileResponse
 from app import state
 from app.config import settings
 from app.core.converter import convert
-from app.core.formats import INPUT_FORMATS, MIME_TYPES, OUTPUT_FORMATS
+from app.core.formats import INPUT_FORMATS, MIME_TYPES, OutputFormat
 from app.core.options_builder import build_plumber_options
-from app.models.options_universal import ConversionOptions
 from app.utils.tempfiles import ConversionTempDir
 
 router = APIRouter()
@@ -24,13 +23,9 @@ _MAX_UPLOAD_BYTES = settings.max_upload_mb * 1024 * 1024
 async def convert_file(
     background_tasks: BackgroundTasks,
     file: UploadFile,
-    output_format: str = Form(...),
+    output_format: OutputFormat = Form(...),
     options: str = Form(default="{}"),
 ) -> FileResponse:
-    output_format = output_format.lower().lstrip(".")
-    if output_format not in OUTPUT_FORMATS:
-        raise HTTPException(status_code=400, detail=f"Unsupported output format: {output_format!r}")
-
     # Detect input format from upload filename
     suffix = Path(file.filename or "").suffix.lstrip(".").lower()
     if not suffix or suffix not in INPUT_FORMATS:
@@ -40,14 +35,14 @@ async def convert_file(
             f"Rename the file to include a supported extension.",
         )
 
-    # Parse and validate options
     try:
-        opts_data = json.loads(options)
-        conv_options = ConversionOptions.model_validate(opts_data)
+        opts_dict = json.loads(options)
+        if not isinstance(opts_dict, dict):
+            raise ValueError("options must be a JSON object")
     except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"Invalid options JSON: {exc}") from exc
+        raise HTTPException(status_code=422, detail=f"Invalid options: {exc}") from exc
 
-    plumber_opts = build_plumber_options(conv_options)
+    plumber_opts = build_plumber_options(opts_dict)
 
     # Check semaphore without blocking — 503 immediately if all workers busy
     semaphore = state.get_semaphore()

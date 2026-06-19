@@ -5,7 +5,7 @@ HTTP API wrapping Calibre's `ebook-convert` pipeline. Accepts a file upload, ret
 ## Stack
 
 - Python 3.14, FastAPI, uv
-- Calibre built from source (Qt stripped) inside Docker
+- Calibre official binary (self-contained) installed to `/opt/calibre/` inside Docker
 - Concurrency: `ProcessPoolExecutor` sized from Docker cgroup CPU/memory limits
 
 ## Commands
@@ -17,7 +17,7 @@ docker build --build-arg CALIBRE_VERSION=9.9.0 -t ebook-convert-api .
 # Run (resource limits drive concurrency auto-sizing)
 docker run -p 8000:8000 --cpus=2 --memory=2g ebook-convert-api
 
-# Local dev (requires Calibre installed with PYTHONPATH=/usr/local/lib)
+# Local dev (requires Calibre installed with ebook-convert on PATH)
 uv run uvicorn app.main:app --reload
 
 # Dependency management
@@ -29,11 +29,11 @@ uv lock --upgrade     # upgrade all deps, regenerate uv.lock
 
 | File | Purpose |
 | ---- | ------- |
-| `docker/patch_calibre.py` | Removes Qt deps from Calibre source before build |
-| `Dockerfile` | Two-stage build: compile Calibre → slim runtime |
+| `Dockerfile` | Two-stage build: install official Calibre binary → slim runtime |
 | `app/config.py` | Settings + cgroup-aware `max_concurrent_jobs` |
 | `app/state.py` | Shared `ProcessPoolExecutor` + `asyncio.Semaphore` |
-| `app/core/converter.py` | Calibre `Plumber` wrapper (runs in executor worker) |
+| `app/core/converter.py` | Calls `ebook-convert` CLI via subprocess (runs in executor worker) |
+| `app/core/introspector.py` | Uses `calibre-debug` to introspect format options |
 | `app/core/options_builder.py` | Maps `ConversionOptions` → Plumber `SimpleNamespace` |
 | `app/api/convert.py` | `POST /convert` endpoint |
 

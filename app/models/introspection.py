@@ -13,4 +13,8 @@ class OptionMetadata(BaseModel):
     type: str  # "str" | "int" | "float" | "bool" | "choice"
     default: str | int | float | bool | None = None
     choices: list[str] | None = None
-    group: str | None = None
+
+
+class OptionGroup(BaseModel):
+    group: str
+    options: list[OptionMetadata]

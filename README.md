@@ -1,6 +1,6 @@
 # ebook-convert-api
 
-A minimal Docker HTTP API that wraps [Calibre's `ebook-convert`](https://manual.calibre-ebook.com/generated/en/ebook-convert.html) pipeline. Upload a file, get the converted ebook back. Calibre is compiled from source with **Qt** stripped, keeping the image lean.
+A minimal Docker HTTP API that wraps [Calibre's `ebook-convert`](https://manual.calibre-ebook.com/generated/en/ebook-convert.html) pipeline. Upload a file, get the converted ebook back. Uses the official Calibre Linux binary — no source build required.
 
 ## Quick start
 
@@ -171,7 +171,7 @@ docker compose up --build
 
 ## Development
 
-Prerequisites: Python 3.14, [`uv`](https://docs.astral.sh/uv/), and Calibre installed locally with `PYTHONPATH=/usr/local/lib`.
+Prerequisites: Python 3.14, [`uv`](https://docs.astral.sh/uv/), and Calibre installed locally with `ebook-convert` on your `PATH`.
 
 ```sh
 uv sync

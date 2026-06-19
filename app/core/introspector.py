@@ -1,35 +1,36 @@
-"""Parse Calibre format-pair option metadata, with LRU caching per (in_fmt, out_fmt) pair."""
+"""Parse Calibre format-pair option metadata via calibre-debug, with LRU caching."""
 
 from __future__ import annotations
 
 import functools
+import json
+import subprocess
 
-from app.models.introspection import OptionMetadata
+from app.models.introspection import OptionGroup, OptionMetadata
 
+# Python snippet executed inside calibre's bundled interpreter (calibre-debug -c).
+# in_fmt and out_fmt are string-interpolated at call time — both values are
+# pre-validated against INPUT_FORMATS / OUTPUT_FORMATS before this runs.
+_INTROSPECT_SCRIPT = """
+import json, optparse, sys
+try:
+    from calibre.customize.ui import plugin_for_input_format, plugin_for_output_format
+    from calibre.ebooks.conversion.plumber import Plumber
 
-@functools.lru_cache(maxsize=256)
-def parse_format_options(in_fmt: str, out_fmt: str) -> list[OptionMetadata]:
-    """Return option metadata for a given input/output format pair.
-
-    Calibre's option system is built around optparse.OptionParser. We instantiate
-    the input and output plugins to gather their option definitions.
-    """
-    try:
-        from calibre.customize.ui import plugin_for_input_format, plugin_for_output_format
-        from calibre.ebooks.conversion.plumber import Plumber
-    except ImportError:
-        return []
+    in_fmt = {in_fmt!r}
+    out_fmt = {out_fmt!r}
 
     input_plugin = plugin_for_input_format(in_fmt)
     output_plugin = plugin_for_output_format(out_fmt)
     if input_plugin is None or output_plugin is None:
-        return []
+        print("[]")
+        sys.exit(0)
 
-    results: list[OptionMetadata] = []
-    seen: set[str] = set()
+    results = []
+    seen = set()
 
-    def _add_from_rec(rec: object, group: str | None) -> None:
-        name: str = getattr(rec, "dest", "") or ""
+    def add_rec(rec, group):
+        name = getattr(rec, "dest", "") or ""
         if not name or name in seen:
             return
         seen.add(name)
@@ -48,42 +49,64 @@ def parse_format_options(in_fmt: str, out_fmt: str) -> list[OptionMetadata]:
         elif choices:
             opt_type = "choice"
 
-        option_strings: list[str] = list(getattr(rec, "option_strings", []) or [])
+        option_strings = list(getattr(rec, "option_strings", []) or [])
         cli_flag = next((s for s in option_strings if s.startswith("--")), name)
 
-        results.append(
-            OptionMetadata(
-                name=name,
-                cli_flag=cli_flag,
-                help=(getattr(rec, "help", None) or "").replace(
-                    "%default", str(getattr(rec, "default", ""))
-                ),
-                type=opt_type,
-                default=getattr(rec, "default", None),
-                choices=list(choices) if choices else None,
-                group=group,
-            )
-        )
+        results.append(dict(
+            name=name,
+            cli_flag=cli_flag,
+            help=(getattr(rec, "help", None) or "").replace(
+                "%default", str(getattr(rec, "default", ""))
+            ),
+            type=opt_type,
+            default=getattr(rec, "default", None),
+            choices=list(choices) if choices else None,
+            group=group,
+        ))
 
-    def _collect_plugin_options(plugin: object, group_label: str) -> None:
-        for rec in getattr(plugin, "options", []) or []:
-            _add_from_rec(rec, group_label)
+    for rec in getattr(input_plugin, "options", []) or []:
+        add_rec(rec, "Input ({})".format(in_fmt.upper()))
+    for rec in getattr(output_plugin, "options", []) or []:
+        add_rec(rec, "Output ({})".format(out_fmt.upper()))
 
-    _collect_plugin_options(input_plugin, f"Input ({in_fmt.upper()})")
-    _collect_plugin_options(output_plugin, f"Output ({out_fmt.upper()})")
-
-    # Also collect universal options via a dummy Plumber option parser
     try:
-        import optparse
-
         parser = optparse.OptionParser()
-        Plumber.add_options(parser)  # type: ignore[attr-defined]
-        for group in parser.option_groups:
-            for rec in group.option_list:
-                _add_from_rec(rec, group.title)
+        Plumber.add_options(parser)
+        for grp in parser.option_groups:
+            for rec in grp.option_list:
+                add_rec(rec, grp.title)
         for rec in parser.option_list:
-            _add_from_rec(rec, "General")
+            add_rec(rec, "General")
     except Exception:
         pass
 
-    return results
+    print(json.dumps(results))
+except Exception as exc:
+    import traceback
+    traceback.print_exc(file=sys.stderr)
+    print("[]")
+"""
+
+
+@functools.lru_cache(maxsize=256)
+def parse_format_options(in_fmt: str, out_fmt: str) -> list[OptionGroup]:
+    script = _INTROSPECT_SCRIPT.format(in_fmt=in_fmt, out_fmt=out_fmt)
+    try:
+        result = subprocess.run(
+            ["calibre-debug", "-c", script],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        data = json.loads(result.stdout.strip() or "[]")
+    except Exception:
+        return []
+
+    # Preserve the insertion order from the introspect script:
+    # input-plugin options → output-plugin options → Plumber groups → General
+    groups: dict[str, list[OptionMetadata]] = {}
+    for item in data:
+        group = item.pop("group", None) or "General"
+        groups.setdefault(group, []).append(OptionMetadata(**item))
+
+    return [OptionGroup(group=g, options=opts) for g, opts in groups.items()]
