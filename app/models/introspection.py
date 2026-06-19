@@ -18,3 +18,16 @@ class OptionMetadata(BaseModel):
 class OptionGroup(BaseModel):
     group: str
     options: list[OptionMetadata]
+
+
+class OptionCatalog(BaseModel):
+    """The full Calibre option catalog, loaded from data/catalog.json.
+
+    `input_plugins` / `output_plugins` map a format to its format-specific
+    options. `common_options` maps a display category (e.g. "Look & Feel") to
+    the shared pipeline options that apply to every conversion.
+    """
+
+    input_plugins: dict[str, list[OptionMetadata]]
+    output_plugins: dict[str, list[OptionMetadata]]
+    common_options: dict[str, list[OptionMetadata]]

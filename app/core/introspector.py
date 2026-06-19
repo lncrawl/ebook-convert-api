@@ -1,112 +1,68 @@
-"""Parse Calibre format-pair option metadata via calibre-debug, with LRU caching."""
+"""Load the pre-generated Calibre option catalog from disk and shape it for the API."""
 
 from __future__ import annotations
 
 import functools
-import json
-import subprocess
+from pathlib import Path
 
-from app.models.introspection import OptionGroup, OptionMetadata
+from app.models.introspection import OptionCatalog, OptionGroup
 
-# Python snippet executed inside calibre's bundled interpreter (calibre-debug -c).
-# in_fmt and out_fmt are string-interpolated at call time — both values are
-# pre-validated against INPUT_FORMATS / OUTPUT_FORMATS before this runs.
-_INTROSPECT_SCRIPT = """
-import json, optparse, sys
-try:
-    from calibre.customize.ui import plugin_for_input_format, plugin_for_output_format
-    from calibre.ebooks.conversion.plumber import Plumber
+# data/catalog.json lives at project root (/app/data/catalog.json in container)
+CATALOG_PATH = Path(__file__).parent.parent.parent / "data" / "catalog.json"
 
-    in_fmt = {in_fmt!r}
-    out_fmt = {out_fmt!r}
-
-    input_plugin = plugin_for_input_format(in_fmt)
-    output_plugin = plugin_for_output_format(out_fmt)
-    if input_plugin is None or output_plugin is None:
-        print("[]")
-        sys.exit(0)
-
-    results = []
-    seen = set()
-
-    def add_rec(rec, group):
-        name = getattr(rec, "dest", "") or ""
-        if not name or name in seen:
-            return
-        seen.add(name)
-
-        opt_type = "str"
-        raw_type = getattr(rec, "type", None)
-        choices = getattr(rec, "choices", None)
-        action = getattr(rec, "action", None)
-
-        if action in ("store_true", "store_false"):
-            opt_type = "bool"
-        elif raw_type == "int":
-            opt_type = "int"
-        elif raw_type == "float":
-            opt_type = "float"
-        elif choices:
-            opt_type = "choice"
-
-        option_strings = list(getattr(rec, "option_strings", []) or [])
-        cli_flag = next((s for s in option_strings if s.startswith("--")), name)
-
-        results.append(dict(
-            name=name,
-            cli_flag=cli_flag,
-            help=(getattr(rec, "help", None) or "").replace(
-                "%default", str(getattr(rec, "default", ""))
-            ),
-            type=opt_type,
-            default=getattr(rec, "default", None),
-            choices=list(choices) if choices else None,
-            group=group,
-        ))
-
-    for rec in getattr(input_plugin, "options", []) or []:
-        add_rec(rec, "Input ({})".format(in_fmt.upper()))
-    for rec in getattr(output_plugin, "options", []) or []:
-        add_rec(rec, "Output ({})".format(out_fmt.upper()))
-
-    try:
-        parser = optparse.OptionParser()
-        Plumber.add_options(parser)
-        for grp in parser.option_groups:
-            for rec in grp.option_list:
-                add_rec(rec, grp.title)
-        for rec in parser.option_list:
-            add_rec(rec, "General")
-    except Exception:
-        pass
-
-    print(json.dumps(results))
-except Exception as exc:
-    import traceback
-    traceback.print_exc(file=sys.stderr)
-    print("[]")
-"""
+# Preferred display order for the common-option categories. Any group present in
+# the catalog but missing here is appended afterwards in catalog order.
+_COMMON_ORDER = (
+    "Look & Feel",
+    "Structure Detection",
+    "Table of Contents",
+    "Heuristic Processing",
+    "Search & Replace",
+    "Metadata",
+    "General",
+    "Debug",
+)
 
 
-@functools.lru_cache(maxsize=256)
-def parse_format_options(in_fmt: str, out_fmt: str) -> list[OptionGroup]:
-    script = _INTROSPECT_SCRIPT.format(in_fmt=in_fmt, out_fmt=out_fmt)
-    try:
-        result = subprocess.run(
-            ["calibre-debug", "-c", script],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-        data = json.loads(result.stdout.strip() or "[]")
-    except Exception:
-        return []
+@functools.lru_cache(maxsize=1)
+def get_catalog() -> OptionCatalog:
+    return OptionCatalog.model_validate_json(CATALOG_PATH.read_text())
 
-    # Preserve the insertion order from the introspect script:
-    # input-plugin options → output-plugin options → Plumber groups → General
-    groups: dict[str, list[OptionMetadata]] = {}
-    for item in data:
-        group = item.pop("group", None) or "General"
-        groups.setdefault(group, []).append(OptionMetadata(**item))
 
-    return [OptionGroup(group=g, options=opts) for g, opts in groups.items()]
+def input_formats() -> list[str]:
+    return sorted(get_catalog().input_plugins)
+
+
+def output_formats() -> list[str]:
+    return sorted(get_catalog().output_plugins)
+
+
+def _ordered_common_groups(common: dict[str, list]) -> list[str]:
+    known = [g for g in _COMMON_ORDER if g in common]
+    extra = [g for g in common if g not in _COMMON_ORDER]
+    return known + extra
+
+
+def combined_options(in_fmt: str, out_fmt: str) -> list[OptionGroup]:
+    """Every option valid for an in_fmt -> out_fmt conversion, grouped for display.
+
+    Order: the input-format options, then each shared category, then the
+    output-format options. Empty groups are omitted.
+    """
+    catalog = get_catalog()
+    groups: list[OptionGroup] = []
+
+    input_opts = catalog.input_plugins.get(in_fmt, [])
+    if input_opts:
+        groups.append(OptionGroup(group="Input", options=input_opts))
+
+    for name in _ordered_common_groups(catalog.common_options):
+        options = catalog.common_options[name]
+        if options:
+            groups.append(OptionGroup(group=name, options=options))
+
+    output_opts = catalog.output_plugins.get(out_fmt, [])
+    if output_opts:
+        groups.append(OptionGroup(group="Output", options=output_opts))
+
+    return groups

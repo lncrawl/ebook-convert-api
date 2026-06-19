@@ -37,22 +37,22 @@ Converts a file. Blocks until done, then streams the result and cleans up.
 
 **Request** — `multipart/form-data`:
 
-| Field | Type | Required | Description |
-| --- | --- | --- | --- |
-| `file` | upload | yes | Input ebook. Format detected from filename extension. |
-| `output_format` | string | yes | Target format: `epub`, `mobi`, `azw3`, `pdf`, … |
-| `options` | JSON string | no | Serialized [ConversionOptions](#conversion-options) |
+| Field           | Type        | Required | Description                                                                   |
+| --------------- | ----------- | -------- | ----------------------------------------------------------------------------- |
+| `file`          | upload      | yes      | Input ebook. Format detected from filename extension.                         |
+| `output_format` | string      | yes      | Target format: `epub`, `mobi`, `azw3`, `pdf`, …                               |
+| `options`       | JSON string | no       | Flat `{option: value}` object — see [Conversion options](#conversion-options) |
 
 **Response** — binary file with `Content-Disposition: attachment`.
 
-| Status | Meaning |
-| --- | --- |
-| `200` | Converted file |
-| `400` | Conversion failed — body contains Calibre error detail |
-| `413` | Upload exceeds `MAX_UPLOAD_MB` |
-| `422` | Invalid `options` JSON |
-| `503` | All workers busy — retry after a moment |
-| `504` | Conversion timed out |
+| Status | Meaning                                                |
+| ------ | ------------------------------------------------------ |
+| `200`  | Converted file                                         |
+| `400`  | Conversion failed — body contains Calibre error detail |
+| `413`  | Upload exceeds `MAX_UPLOAD_MB`                         |
+| `422`  | Invalid `options` JSON                                 |
+| `503`  | All workers busy — retry after a moment                |
+| `504`  | Conversion timed out                                   |
 
 ### `GET /formats`
 
@@ -67,7 +67,27 @@ Returns the full list of supported input and output formats.
 
 ### `GET /formats/{in_fmt}/{out_fmt}/options`
 
-Returns Calibre option metadata for a specific format pair (pre-generated at image build time) — useful for building UIs or validating `extra_options` keys.
+Returns every Calibre option valid for that conversion, grouped by category (pre-generated at image build time) — useful for building UIs or discovering option names. Each group has a `group` label and a list of option metadata (`name`, `cli_flag`, `help`, `type`, `default`, `choices`). The groups are: `Input` (input-format options), the shared categories (`Look & Feel`, `Structure Detection`, `Table of Contents`, `Heuristic Processing`, `Search & Replace`, `Metadata`, `General`, `Debug`), and `Output` (output-format options).
+
+```json
+[
+  {
+    "group": "Look & Feel",
+    "options": [
+      {
+        "name": "base_font_size",
+        "cli_flag": "--base-font-size",
+        "help": "The base font size in pts...",
+        "type": "float",
+        "default": 0,
+        "choices": null
+      }
+    ]
+  }
+]
+```
+
+Responds `404` if either format is not supported.
 
 ### `GET /health`
 
@@ -87,39 +107,19 @@ Lightweight readiness probe used by Docker and Kubernetes health checks.
 
 ## Conversion options
 
-`options` is a JSON object matching `ConversionOptions`. All fields are optional.
-
-### Universal fields
-
-| Field | Type | Description |
-| --- | --- | --- |
-| `base_font_size` | float | Base font size in pts |
-| `margin_top/bottom/left/right` | float | Page margins in pts |
-| `extra_css` | string | Extra CSS applied after all other CSS |
-| `embed_all_fonts` | bool | Embed every referenced font |
-| `smarten_punctuation` | bool | Convert plain quotes/dashes to typographic |
-| `enable_heuristics` | bool | Enable heuristic processing |
-| `title`, `authors`, `publisher` | string | Metadata overrides |
-| `language` | string | Language code (e.g. `en`, `fr`) |
-| `input_profile` | string | Input device profile (e.g. `default`, `kindle`) |
-| `output_profile` | string | Output device profile (e.g. `default`, `kobo`, `kindle`) |
-| `verbose` | int (0–2) | Calibre log verbosity |
-
-Full field reference: [`app/models/options_universal.py`](app/models/options_universal.py)
-
-### Format-specific flags via `extra_options`
-
-Pass any Calibre CLI flag not in the universal list through `extra_options`. Keys can use hyphens or underscores, with or without `--`. Boolean flags use `null`.
+`options` is a flat JSON object of `{option_name: value}` pairs — all optional. The keys are Calibre option names as returned by [`GET /formats/{in}/{out}/options`](#get-formatsin_fmtout_fmtoptions); keys may use hyphens or underscores, with or without a leading `--`. A `null` value means a boolean flag (passed with no argument). Keys you omit fall back to Calibre's own defaults.
 
 ```json
 {
-  "extra_options": {
-    "epub-version": "3",
-    "no-default-epub-cover": null,
-    "mobi-file-type": "both"
-  }
+  "base_font_size": 12,
+  "margin_top": 36,
+  "embed_all_fonts": true,
+  "epub-version": "3",
+  "no-default-epub-cover": null
 }
 ```
+
+Call the options endpoint for a given format pair to discover the full set of valid keys, their types, defaults, and allowed `choices`.
 
 > **Security:** Filesystem-path flags (`--debug-pipeline`, `--extract-to`, `--cover`, `--transform-css-rules`) are blocked by the server regardless of what is sent.
 
@@ -129,13 +129,13 @@ Pass any Calibre CLI flag not in the universal list through `extra_options`. Key
 
 Environment variables (all optional):
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `MAX_CONCURRENT_JOBS` | auto | Worker count. `0` re-derives from cgroup limits. |
-| `MEMORY_PER_JOB_MB` | `256` | Per-job memory budget used for auto-sizing. |
-| `CONVERSION_TIMEOUT_SECONDS` | `300` | Per-job timeout. `504` returned on breach. |
-| `MAX_UPLOAD_MB` | `100` | Upload size limit. `413` returned on breach. |
-| `USE_AUTH` | `false` | Enable auth middleware stub (not yet implemented). |
+| Variable                     | Default | Description                                        |
+| ---------------------------- | ------- | -------------------------------------------------- |
+| `MAX_CONCURRENT_JOBS`        | auto    | Worker count. `0` re-derives from cgroup limits.   |
+| `MEMORY_PER_JOB_MB`          | `256`   | Per-job memory budget used for auto-sizing.        |
+| `CONVERSION_TIMEOUT_SECONDS` | `300`   | Per-job timeout. `504` returned on breach.         |
+| `MAX_UPLOAD_MB`              | `100`   | Upload size limit. `413` returned on breach.       |
+| `USE_AUTH`                   | `false` | Enable auth middleware stub (not yet implemented). |
 
 ### Concurrency auto-sizing
 
@@ -170,7 +170,7 @@ poe typecheck    # pyright
 
 To upgrade Calibre: change `CALIBRE_VERSION` in the Dockerfile, then `poe build`.
 
-> **Note:** Format option stubs (`data/format_stubs/`) are generated automatically during `docker build` by running `calibre-debug` against every supported format pair. They are gitignored — do not commit them.
+> **Note:** The option catalog (`data/catalog.json`) is generated by running `calibre-debug` against the installed Calibre — automatically during `docker build`, or locally with `poe generate-catalog`. The committed copy is what the API serves.
 
 ---
 

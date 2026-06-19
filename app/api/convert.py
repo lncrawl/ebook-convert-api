@@ -9,8 +9,9 @@ from fastapi.responses import FileResponse
 
 from app import state
 from app.config import settings
+from app.core import introspector
 from app.core.converter import convert
-from app.core.formats import INPUT_FORMATS, MIME_TYPES, OutputFormat
+from app.core.formats import MIME_TYPES
 from app.core.options_builder import build_plumber_options
 from app.utils.tempfiles import ConversionTempDir
 
@@ -23,16 +24,23 @@ _MAX_UPLOAD_BYTES = settings.max_upload_mb * 1024 * 1024
 async def convert_file(
     background_tasks: BackgroundTasks,
     file: UploadFile,
-    output_format: OutputFormat = Form(...),
+    output_format: str = Form(...),
     options: str = Form(default="{}"),
 ) -> FileResponse:
     # Detect input format from upload filename
     suffix = Path(file.filename or "").suffix.lstrip(".").lower()
-    if not suffix or suffix not in INPUT_FORMATS:
+    if not suffix or suffix not in introspector.input_formats():
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot determine input format from filename {file.filename!r}. "
+            detail=f"Cannot determine a supported input format from filename {file.filename!r}. "
             f"Rename the file to include a supported extension.",
+        )
+
+    output_format = output_format.lower()
+    if output_format not in introspector.output_formats():
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported output format: {output_format!r}",
         )
 
     try:

@@ -25,10 +25,10 @@ dev = ["poethepoet>=0.32", "pyright>=1.1.410", "ruff>=0.15.17"]
 lint = "ruff check app scripts"
 fmt = "ruff format app scripts"
 typecheck = "pyright"
-generate-stubs = """
+generate-catalog = """
     calibre-debug
         -e scripts/calibre_introspect.py
-        data/output.json
+        data/catalog.json
 """
 build = "docker build -t ebook-convert-api ."
 up = """

@@ -5,11 +5,12 @@ Generate a Calibre conversion option catalog.
 
 Usage:
 
-    calibre-debug -e calibre_introspect.py output.json
+    calibre-debug -e calibre_introspect.py catalog.json
 """
 
 import json
 import sys
+import tempfile
 from pathlib import Path
 
 from calibre.customize.ui import (  # pyright: ignore[reportMissingImports]
@@ -17,10 +18,31 @@ from calibre.customize.ui import (  # pyright: ignore[reportMissingImports]
     input_format_plugins,
     output_format_plugins,
 )
+from calibre.ebooks.conversion.cli import (  # pyright: ignore[reportMissingImports]
+    add_pipeline_options,
+)
+from calibre.ebooks.conversion.plumber import Plumber  # pyright: ignore[reportMissingImports]
+from calibre.utils.config import OptionParser  # pyright: ignore[reportMissingImports]
+from calibre.utils.logging import Log  # pyright: ignore[reportMissingImports]
 
 initialize_plugins()
 
 output_path = Path(sys.argv[1])
+
+# Calibre groups its shared pipeline options under UPPERCASE titles; map them to
+# friendlier display names. Pipeline options that the parser leaves ungrouped
+# (the input/output profiles) are collected under "General". Note: `debug_pipeline`
+# in the Debug group is denylisted at conversion time by app.core.options_builder.
+GROUP_TITLES = {
+    "LOOK AND FEEL": "Look & Feel",
+    "HEURISTIC PROCESSING": "Heuristic Processing",
+    "SEARCH AND REPLACE": "Search & Replace",
+    "STRUCTURE DETECTION": "Structure Detection",
+    "TABLE OF CONTENTS": "Table of Contents",
+    "METADATA": "Metadata",
+    "DEBUG": "Debug",
+}
+UNGROUPED_TITLE = "General"
 
 
 def optionrec_to_dict(rec):
@@ -79,9 +101,65 @@ def collect_options(plugin):
     return results
 
 
+def collect_common_options():
+    """Collect Calibre's shared pipeline options, grouped by category.
+
+    These are the conversion knobs (margins, fonts, TOC, metadata, heuristics …)
+    that apply to every conversion regardless of format. They live on the Plumber
+    rather than on any single format plugin, so we drive a throwaway Plumber and
+    read the option groups the CLI parser builds from it.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        dummy_in = Path(tmp) / "in.epub"
+        dummy_in.write_text("")
+        dummy_out = str(Path(tmp) / "out.epub")
+        plumber = Plumber(str(dummy_in), dummy_out, Log())
+
+        rec_by_name = {}
+        for rec in plumber.pipeline_options:
+            opt = getattr(rec, "option", None)
+            name = getattr(opt, "name", None) if opt is not None else None
+            if name:
+                rec_by_name[name] = rec
+
+        parser = OptionParser(usage="introspect")
+        add_pipeline_options(parser, plumber)
+
+    def options_for(parser_options):
+        seen = set()
+        results = []
+        for parser_opt in parser_options:
+            name = parser_opt.dest
+            rec = rec_by_name.get(name) if name else None
+            entry = optionrec_to_dict(rec) if rec is not None else None
+            if not entry or entry["name"] in seen:
+                continue
+            seen.add(entry["name"])
+            results.append(entry)
+        results.sort(key=lambda x: x["name"])
+        return results
+
+    groups = {}
+
+    ungrouped = options_for(parser.option_list)
+    if ungrouped:
+        groups[UNGROUPED_TITLE] = ungrouped
+
+    for group in parser.option_groups:
+        display = GROUP_TITLES.get(group.title)
+        if display is None:  # skip DEBUG and any future unmapped group
+            continue
+        options = options_for(group.option_list)
+        if options:
+            groups[display] = options
+
+    return groups
+
+
 catalog = {
     "input_plugins": {},
     "output_plugins": {},
+    "common_options": {},
 }
 
 for plugin in input_format_plugins():
@@ -102,6 +180,8 @@ for plugin in output_format_plugins():
         catalog["output_plugins"][fmt] = options
 
 
+catalog["common_options"] = collect_common_options()
+
 catalog["input_plugins"] = dict(sorted(catalog["input_plugins"].items()))
 
 catalog["output_plugins"] = dict(sorted(catalog["output_plugins"].items()))
@@ -113,6 +193,11 @@ print(
 
 print(
     f"Output formats: {len(catalog['output_plugins'])}",
+    file=sys.stderr,
+)
+
+print(
+    f"Common option groups: {len(catalog['common_options'])}",
     file=sys.stderr,
 )
 

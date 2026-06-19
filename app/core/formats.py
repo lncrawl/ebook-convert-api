@@ -1,75 +1,7 @@
-from enum import StrEnum
+"""Static format metadata. Supported formats themselves are derived from the
+Calibre catalog (see app.core.introspector); this module only carries the MIME
+map used to set the download response's media type."""
 
-
-class InputFormat(StrEnum):
-    AZW = "azw"
-    AZW3 = "azw3"
-    AZW4 = "azw4"
-    CB7 = "cb7"
-    CBC = "cbc"
-    CBR = "cbr"
-    CBZ = "cbz"
-    CHM = "chm"
-    DJVU = "djvu"
-    DOCX = "docx"
-    EPUB = "epub"
-    FB2 = "fb2"
-    FBZ = "fbz"
-    HTML = "html"
-    HTMLZ = "htmlz"
-    IMP = "imp"
-    KEPUB = "kepub"
-    LIT = "lit"
-    LRF = "lrf"
-    LRX = "lrx"
-    MOBI = "mobi"
-    ODT = "odt"
-    OEBZIP = "oebzip"
-    PDB = "pdb"
-    PDF = "pdf"
-    PML = "pml"
-    PMLZ = "pmlz"
-    POBI = "pobi"
-    PRC = "prc"
-    RB = "rb"
-    RTF = "rtf"
-    SNB = "snb"
-    TCR = "tcr"
-    TXT = "txt"
-    TXTZ = "txtz"
-    UPDB = "updb"
-    XHTML = "xhtml"
-    XHTM = "xhtm"
-    ZIP = "zip"
-
-
-class OutputFormat(StrEnum):
-    AZW3 = "azw3"
-    DOCX = "docx"
-    EPUB = "epub"
-    FB2 = "fb2"
-    HTML = "html"
-    HTMLZ = "htmlz"
-    KEPUB = "kepub"
-    LIT = "lit"
-    LRF = "lrf"
-    MOBI = "mobi"
-    OEB = "oeb"
-    PDB = "pdb"
-    PDF = "pdf"
-    PML = "pml"
-    PMLZ = "pmlz"
-    RB = "rb"
-    RTF = "rtf"
-    SNB = "snb"
-    TCR = "tcr"
-    TXT = "txt"
-    TXTZ = "txtz"
-    ZIP = "zip"
-
-
-INPUT_FORMATS: frozenset[str] = frozenset(InputFormat)
-OUTPUT_FORMATS: frozenset[str] = frozenset(OutputFormat)
 MIME_TYPES: dict[str, str] = {
     "azw": "application/vnd.amazon.mobi8-ebook",
     "azw3": "application/vnd.amazon.mobi8-ebook",

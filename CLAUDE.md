@@ -11,7 +11,7 @@ HTTP API wrapping Calibre's `ebook-convert` pipeline. Accepts a file upload, ret
 ## Commands
 
 ```sh
-# Build image (generates format stubs at build time)
+# Build image (generates the option catalog at build time)
 poe build
 
 # Run production container
@@ -34,14 +34,14 @@ uv lock --upgrade     # upgrade all deps, regenerate uv.lock
 
 | File | Purpose |
 | ---- | ------- |
-| `Dockerfile` | Two-stage build: install official Calibre binary → slim runtime; generates format stubs at build time |
-| `scripts/calibre_introspect.py` | Run by `calibre-debug -e` during build; introspects one format pair and prints JSON |
-| `scripts/generate_stubs.py` | Build-time script; iterates all format pairs and writes stubs to `data/format_stubs/` |
+| `Dockerfile` | Multi-stage build: install + prune official Calibre binary, build venv with uv, assemble a slim runtime (no uv/build tools, Mesa software-GL stripped); generates the option catalog at build time |
+| `scripts/calibre_introspect.py` | Run by `calibre-debug -e` during build; introspects all formats + common pipeline options and writes `data/output.json` |
+| `data/output.json` | Generated option catalog: `input_plugins`/`output_plugins` (per-format options) + `common_options` (shared options grouped by category) |
 | `app/config.py` | Settings + cgroup-aware `max_concurrent_jobs` |
 | `app/state.py` | Shared `ProcessPoolExecutor` + `asyncio.Semaphore` |
 | `app/core/converter.py` | Calls `ebook-convert` CLI via subprocess (runs in executor worker) |
-| `app/core/introspector.py` | Loads pre-generated format option stubs from `data/format_stubs/` |
-| `app/core/options_builder.py` | Maps `ConversionOptions` → Plumber `SimpleNamespace` |
+| `app/core/introspector.py` | Loads `data/output.json`; derives format lists + per-pair grouped options |
+| `app/core/options_builder.py` | Maps a flat `{name: value}` options dict → Plumber `SimpleNamespace` |
 | `app/api/convert.py` | `POST /convert` endpoint |
 
 ## Calibre version
