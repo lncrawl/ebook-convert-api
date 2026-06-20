@@ -24,7 +24,9 @@ dev = ["poethepoet>=0.32", "pyright>=1.1.410", "ruff>=0.15.17", "pytest>=8"]
 
 [tool.poe.tasks]
 lint = "ruff check app scripts tests"
+lint-fix = "ruff check --fix app scripts tests"
 format = "ruff format app scripts tests"
+format-check = "ruff format --check app scripts tests"
 typecheck = "pyright"
 test = "pytest tests/ -v"
 start = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
@@ -40,6 +42,18 @@ catalog-dev = """
         api
         calibre-debug -e /app/scripts/calibre_introspect.py ./data/catalog.json
 """
+
+# Aggregate static checks — used by the Lint CI workflow and handy locally.
+[tool.poe.tasks.check]
+help = "Run lint, format check, and typecheck"
+sequence = ["lint", "format-check", "typecheck"]
+default_item_type = "ref"
+
+# Write counterpart to `check`: auto-fix lint issues and format in place.
+[tool.poe.tasks.fix]
+help = "Auto-fix lint issues (ruff --fix) and format"
+sequence = ["lint-fix", "format"]
+default_item_type = "ref"
 
 [tool.ruff]
 target-version = "py314"
