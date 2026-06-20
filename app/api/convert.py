@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import zipfile
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
@@ -100,6 +101,16 @@ async def convert_file(
                 ) from exc
             except Exception as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+        # Some output formats (e.g. oeb) write a directory of files rather than a
+        # single file. Pack the directory into a ZIP so FileResponse can serve it.
+        if output_path.is_dir():
+            packed = output_path.parent / f"output.{output_format}.zip"
+            with zipfile.ZipFile(packed, "w", zipfile.ZIP_DEFLATED) as zf:
+                for child in sorted(output_path.rglob("*")):
+                    if child.is_file():
+                        zf.write(child, child.relative_to(output_path))
+            output_path = packed
 
         if not output_path.exists():
             raise HTTPException(status_code=500, detail="Conversion produced no output file")

@@ -25,47 +25,13 @@ dev = ["poethepoet>=0.32", "pyright>=1.1.410", "ruff>=0.15.17", "pytest>=8"]
 lint = "ruff check app scripts tests"
 format = "ruff format app scripts tests"
 typecheck = "pyright"
-generate-catalog = """
-    calibre-debug
-        -e scripts/calibre_introspect.py
-        data/catalog.json
-"""
+catalog = "calibre-debug -e scripts/calibre_introspect.py data/catalog.json"
 test = "pytest tests/ -v"
-build = "docker build -t ebook-convert-api ."
 start = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
-watch = """
-    uvicorn app.main:app
-        --host 0.0.0.0
-        --port 8000
-        --reload
-        --reload-dir /app/app
-"""
-up = """
-    docker run
-        --rm
-        -p 8000:8000
-        --cpus=2
-        --memory=2g
-        --name ebook-convert
-        ebook-convert-api
-"""
-dev = """
-  docker run
-    --rm
-    -p 8000:8000
-    --cpus=2
-    --memory=4g
-    -v ${POE_ROOT}/app:/app/app
-    -v ${POE_ROOT}/data:/app/data
-    -v ${POE_ROOT}/scripts:/app/scripts
-    --name ebook-convert-dev
-    ebook-convert-api
-    /app/.venv/bin/uvicorn app.main:app
-        --host 0.0.0.0
-        --port 8000
-        --reload
-        --reload-dir /app/app
-"""
+watch = "uvicorn app.main:app --port 8000 --reload --reload-dir /app/app"
+up = "docker compose up --build"
+dev = "docker compose -f compose.dev.yml up --build"
+dev-exec = "docker compose -f compose.dev.yml exec api bash"
 
 [tool.ruff]
 target-version = "py314"

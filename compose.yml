@@ -2,13 +2,13 @@ services:
   api:
     build:
       context: .
-      args:
-        CALIBRE_VERSION: "9.9.0"
-    image: ebook-convert-api:dev
+      target: app
+    image: ebook-convert-api
+    container_name: ebook-convert
     ports:
       - "8000:8000"
     environment:
-      MAX_CONCURRENT_JOBS: "0"       # 0 = auto-size from cgroup limits
+      MAX_CONCURRENT_JOBS: "0"
       MEMORY_PER_JOB_MB: "256"
       CONVERSION_TIMEOUT_SECONDS: "300"
       MAX_UPLOAD_MB: "100"
@@ -18,7 +18,13 @@ services:
           cpus: "2"
           memory: 2g
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8000/ready"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import sys,urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/ready').status==200 else 1)",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
