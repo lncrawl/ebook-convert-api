@@ -42,7 +42,8 @@ uv lock --upgrade     # upgrade all deps, regenerate uv.lock
 | `app/core/converter.py` | Calls `ebook-convert` CLI via subprocess (runs in executor worker) |
 | `app/core/introspector.py` | Loads `data/output.json`; derives format lists + per-pair grouped options |
 | `app/core/options_builder.py` | Maps a flat `{name: value}` options dict → Plumber `SimpleNamespace` |
-| `app/api/convert.py` | `POST /convert` endpoint |
+| `app/core/options_schema.py` | Builds the `POST /convert` signature from the catalog — one typed form field per option (enum dropdowns for `choice`), so Swagger renders rich docs |
+| `app/api/convert.py` | `POST /convert` endpoint; exposes every catalog option as a typed multipart form field |
 
 ## Calibre version
 

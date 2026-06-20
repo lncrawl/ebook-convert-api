@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-
 import httpx
+import pytest
 
 from tests.conftest import INPUT_FORMATS, OUTPUT_FORMATS
 

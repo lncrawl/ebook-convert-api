@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import zipfile
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from app import state
 from app.config import settings
-from app.core import introspector
+from app.core import introspector, options_schema
 from app.core.converter import convert
 from app.core.formats import MIME_TYPES
 from app.core.options_builder import build_plumber_options
@@ -21,12 +20,11 @@ router = APIRouter()
 _MAX_UPLOAD_BYTES = settings.max_upload_mb * 1024 * 1024
 
 
-@router.post("/convert")
 async def convert_file(
     background_tasks: BackgroundTasks,
     file: UploadFile,
-    output_format: str = Form(...),
-    options: str = Form(default="{}"),
+    output_format: str,
+    **options: object,
 ) -> FileResponse:
     # Detect input format from upload filename
     suffix = Path(file.filename or "").suffix.lstrip(".").lower()
@@ -37,19 +35,13 @@ async def convert_file(
             f"Rename the file to include a supported extension.",
         )
 
+    # output_format is already constrained to the supported set by the enum annotation.
     output_format = output_format.lower()
-    if output_format not in introspector.output_formats():
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported output format: {output_format!r}",
-        )
 
-    try:
-        opts_dict = json.loads(options)
-        if not isinstance(opts_dict, dict):
-            raise ValueError("options must be a JSON object")
-    except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"Invalid options: {exc}") from exc
+    # Keep only options the user actually set, and only those valid for this format pair —
+    # the form exposes the union of all options, but Calibre rejects cross-format flags.
+    allowed = options_schema.valid_option_names(suffix, output_format)
+    opts_dict = {k: v for k, v in options.items() if v is not None and k in allowed}
 
     plumber_opts = build_plumber_options(opts_dict)
 
@@ -137,3 +129,9 @@ async def convert_file(
 
 def _cleanup(tmp: ConversionTempDir) -> None:
     tmp.__exit__(None, None, None)
+
+
+# Replace the placeholder signature with one field per catalog option so FastAPI
+# renders each as a typed multipart form field in the Swagger docs.
+convert_file.__signature__ = options_schema.convert_signature()  # type: ignore[attr-defined]
+router.post("/convert")(convert_file)

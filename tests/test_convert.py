@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import json
-
 import httpx
 import pytest
 
 from tests.conftest import INPUT_FIXTURES, OUTPUT_FORMATS
-
 
 # ---------------------------------------------------------------------------
 # EPUB → every supported output format
@@ -60,11 +57,15 @@ def test_conversion_with_options(
     epub_fixture: tuple[str, bytes],
 ) -> None:
     filename, data = epub_fixture
-    options = json.dumps({"margin_top": 36, "margin_bottom": 36, "base_font_size": 12})
     resp = client.post(
         "/convert",
         files={"file": (filename, data, "application/epub+zip")},
-        data={"output_format": "epub", "options": options},
+        data={
+            "output_format": "epub",
+            "margin_top": "36",
+            "margin_bottom": "36",
+            "base_font_size": "12",
+        },
     )
     assert resp.status_code == 200, resp.text
     assert len(resp.content) > 0
@@ -85,7 +86,8 @@ def test_unsupported_output_format(
         files={"file": (filename, data, "application/epub+zip")},
         data={"output_format": "xyz_bogus"},
     )
-    assert resp.status_code == 400
+    # output_format is an enum, so FastAPI rejects an unknown value at validation time.
+    assert resp.status_code == 422
 
 
 def test_unrecognized_input_filename(client: httpx.Client) -> None:
@@ -97,7 +99,7 @@ def test_unrecognized_input_filename(client: httpx.Client) -> None:
     assert resp.status_code == 400
 
 
-def test_invalid_options_json(
+def test_option_wrong_type_rejected(
     client: httpx.Client,
     epub_fixture: tuple[str, bytes],
 ) -> None:
@@ -105,12 +107,12 @@ def test_invalid_options_json(
     resp = client.post(
         "/convert",
         files={"file": (filename, data, "application/epub+zip")},
-        data={"output_format": "epub", "options": "not-json"},
+        data={"output_format": "epub", "base_font_size": "not-a-number"},
     )
     assert resp.status_code == 422
 
 
-def test_options_must_be_object(
+def test_option_invalid_choice_rejected(
     client: httpx.Client,
     epub_fixture: tuple[str, bytes],
 ) -> None:
@@ -118,6 +120,6 @@ def test_options_must_be_object(
     resp = client.post(
         "/convert",
         files={"file": (filename, data, "application/epub+zip")},
-        data={"output_format": "epub", "options": "[1, 2, 3]"},
+        data={"output_format": "epub", "epub_version": "9"},
     )
     assert resp.status_code == 422
