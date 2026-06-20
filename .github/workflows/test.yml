@@ -18,6 +18,20 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v7
 
+      - name: 🐍 Install uv & Python 3.14
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: 📦 Install dependencies
+        run: uv sync --frozen
+
+      - name: 🧪 Run unit tests
+        env:
+          API_BASE_URL: http://localhost:8000
+        run: uv run poe cov
+
       - name: 🐳 Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -35,20 +49,6 @@ jobs:
           echo "::error::service did not become ready in time"
           docker compose logs
           exit 1
-
-      - name: 🐍 Install uv & Python 3.14
-        uses: astral-sh/setup-uv@v7
-        with:
-          python-version: "3.14"
-          enable-cache: true
-
-      - name: 📦 Install dependencies
-        run: uv sync --frozen
-
-      - name: 🧪 Run unit tests
-        env:
-          API_BASE_URL: http://localhost:8000
-        run: uv run poe test-unit
 
       - name: 🧪 Run integration tests
         env:
