@@ -220,6 +220,6 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Generated test fixtures (run tests/fixtures/generate.py to recreate)
-tests/generate/*
-!tests/generate/*.py
+tests/cross-check/*
+!tests/cross-check/*.py
 tests/epub-test/output
