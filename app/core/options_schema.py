@@ -7,8 +7,8 @@ FastAPI renders it as a flattened multipart form field in the OpenAPI/Swagger do
 
 from __future__ import annotations
 
+import html
 import inspect
-import re
 from typing import Annotated, Any, Literal
 
 from fastapi import BackgroundTasks, Form, UploadFile
@@ -44,7 +44,7 @@ def _annotation_for(opt: OptionMetadata) -> object:
 
 def _describe(opt: OptionMetadata) -> str:
     help_text = opt.help or ""
-    help_text = re.sub(r"\<[\w\d]+\> or \<[\d\w]+\>", "or", help_text)
+    help_text = html.escape(help_text)
     if opt.default not in (None, ""):
         suffix = f" (default: {opt.default})"
         return f"{help_text}{suffix}" if help_text else suffix.strip()

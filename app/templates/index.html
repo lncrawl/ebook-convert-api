@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ebook Convert</title>
+    <!-- prettier-ignore -->
+    <style>{{ css | safe }}</style>
+  </head>
+
+  <body>
+    <header>
+      <div class="logo">📚</div>
+      <div class="brand">
+        <h1>ebook-convert</h1>
+        <p>Calibre conversion API</p>
+      </div>
+      <div class="spacer"></div>
+      <a class="docs" href="/docs">API reference →</a>
+    </header>
+
+    <main>
+      <form id="form" class="layout">
+        <!-- Source & target -->
+        <div class="card card-source">
+          <div class="card-head"><h2>Source &amp; target</h2></div>
+          <div class="card-body">
+            <div class="field">
+              <label for="file">
+                File
+                <span class="pill hidden" id="in-pill"></span>
+              </label>
+              <input type="file" id="file" name="file" required />
+              <span class="help"
+                >The input format is detected from the file extension.</span
+              >
+            </div>
+            <div class="field">
+              <label for="output_format">Output format</label>
+              <select id="output_format" name="output_format" required></select>
+              <span class="help">Target format for the converted ebook.</span>
+            </div>
+            <input type="hidden" id="input_format" />
+          </div>
+        </div>
+
+        <!-- Options -->
+        <div class="card card-options">
+          <div class="card-head">
+            <h2>Options</h2>
+            <span class="badge" id="set-count">0 set</span>
+          </div>
+          <div class="card-body">
+            <div class="opts-toolbar">
+              <input
+                class="filter"
+                id="filter"
+                type="search"
+                placeholder="Filter options…"
+              />
+              <button type="button" class="linkbtn" id="expand-all">
+                Expand all
+              </button>
+              <button type="button" class="linkbtn" id="collapse-all">
+                Collapse
+              </button>
+            </div>
+            <div id="options">
+              <p class="empty">
+                Choose a file and output format to see the available options.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Request + live code -->
+        <aside class="col-side">
+          <div class="card request">
+            <div class="card-head"><h2>Request</h2></div>
+            <div class="card-body">
+              <div class="convert-row">
+                <button type="submit" class="primary" id="submit">
+                  Convert &amp; download
+                </button>
+                <span id="status"></span>
+              </div>
+
+              <div class="tabs" id="tabs" style="margin-top: 18px">
+                <button type="button" class="tab active" data-lang="curl">
+                  cURL
+                </button>
+                <button type="button" class="tab" data-lang="python">
+                  Python
+                </button>
+                <button type="button" class="tab" data-lang="js">
+                  JavaScript
+                </button>
+              </div>
+
+              <div class="code-wrap">
+                <div class="code-head">
+                  <span class="code-lang" id="code-lang">cURL</span>
+                  <button type="button" class="copy-btn" id="copy">Copy</button>
+                </div>
+                <pre class="code" id="code"><span class="ln">…</span></pre>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </form>
+    </main>
+
+    <!-- Server-injected format lists (avoids a client fetch("/formats")). -->
+    <!-- prettier-ignore -->
+    <script id="bootstrap-data" type="application/json">{{ bootstrap | safe }}</script>
+    <!-- prettier-ignore -->
+    <script>{{ js | safe }}</script>
+  </body>
+</html>
