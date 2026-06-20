@@ -1,6 +1,6 @@
 [project]
 name = "ebook-convert-api"
-version = "0.1.0"
+version = "0.1.1"
 description = "HTTP API wrapping Calibre's ebook-convert pipeline"
 requires-python = ">=3.14"
 dependencies = [
