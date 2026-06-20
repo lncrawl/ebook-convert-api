@@ -1,5 +1,6 @@
 # ebook-convert-api
 
+[![codecov](https://codecov.io/gh/lncrawl/ebook-convert-api/graph/badge.svg?token=GE91YGCUUU)](https://codecov.io/gh/lncrawl/ebook-convert-api)
 [![Lint](https://github.com/lncrawl/ebook-convert-api/actions/workflows/lint.yml/badge.svg)](https://github.com/lncrawl/ebook-convert-api/actions/workflows/lint.yml)
 [![Docker build](https://github.com/lncrawl/ebook-convert-api/actions/workflows/docker-build.yml/badge.svg)](https://github.com/lncrawl/ebook-convert-api/actions/workflows/docker-build.yml)
 [![Dependabot Updates](https://github.com/lncrawl/ebook-convert-api/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/lncrawl/ebook-convert-api/actions/workflows/dependabot/dependabot-updates)
