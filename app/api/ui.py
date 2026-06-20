@@ -12,8 +12,9 @@ from ..core import introspector
 
 router = APIRouter()
 
-_STATIC_DIR = Path(__file__).parent.parent / "static"
-_templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
+REPO_ROOT = Path(__file__).parents[1]
+_STATIC_DIR = REPO_ROOT / "static"
+_templates = Jinja2Templates(directory=str(REPO_ROOT / "templates"))
 
 
 def _read_asset(name: str) -> str:

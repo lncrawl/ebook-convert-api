@@ -20,7 +20,14 @@ build-backend = "hatchling.build"
 packages = ["app"]
 
 [dependency-groups]
-dev = ["poethepoet>=0.32", "pyright>=1.1.410", "ruff>=0.15.17", "pytest>=8"]
+dev = [
+    "poethepoet>=0.32",
+    "pyright>=1.1.410",
+    "ruff>=0.15.17",
+    "pytest>=8",
+    "pytest-cov>=7.1.0",
+    "pytest-asyncio>=1.4.0",
+]
 
 [tool.poe.tasks]
 lint = "ruff check app scripts tests"
@@ -29,6 +36,9 @@ format = "ruff format app scripts tests"
 format-check = "ruff format --check app scripts tests"
 typecheck = "pyright"
 test = "pytest tests/ -v"
+test-unit = "pytest tests/unit -v"
+test-int = "pytest tests/integration -v"
+cov = "pytest tests/unit --cov --cov-branch --cov-report=term-missing --cov-report=html --cov-report=xml"
 start = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
 watch = "uvicorn app.main:app --port 8000 --reload --reload-dir /app/app"
 up = "docker compose up --build"
@@ -83,6 +93,15 @@ known-first-party = ["app"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+]
 
 [tool.pyright]
 pythonVersion = "3.14"

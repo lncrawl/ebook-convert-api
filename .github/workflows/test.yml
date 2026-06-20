@@ -45,10 +45,15 @@ jobs:
       - name: 📦 Install dependencies
         run: uv sync --frozen
 
-      - name: 🧪 Run integration tests (poe test)
+      - name: 🧪 Run unit tests
         env:
           API_BASE_URL: http://localhost:8000
-        run: uv run poe test
+        run: uv run poe test-unit
+
+      - name: 🧪 Run integration tests
+        env:
+          API_BASE_URL: http://localhost:8000
+        run: uv run poe test-int
 
       - name: 🧾 Dump service logs on failure
         if: failure()

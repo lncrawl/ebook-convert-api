@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: write
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v6
@@ -33,3 +34,21 @@ jobs:
 
       - name: 🧹 Static checks (ruff + pyright)
         run: uv run poe check
+
+      - name: Run tests with coverage
+        run: uv run poe cov --cov-report=markdown-append:$GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage.xml
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          retention-days: 7
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: ${{ github.repository }}
+          files: coverage.xml
+          fail_ci_if_error: false

@@ -8,7 +8,8 @@ from pathlib import Path
 from ..models.introspection import OptionCatalog, OptionGroup, OptionMetadata
 
 # data/catalog.json lives at project root (/app/data/catalog.json in container)
-CATALOG_PATH = Path(__file__).parent.parent.parent / "data" / "catalog.json"
+REPO_ROOT = Path(__file__).parents[2]
+CATALOG_PATH = REPO_ROOT / "data" / "catalog.json"
 
 # Preferred display order for the common-option categories. Any group present in
 # the catalog but missing here is appended afterwards in catalog order.

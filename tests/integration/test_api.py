@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from tests.conftest import INPUT_FORMATS, OUTPUT_FORMATS
+from .conftest import INPUT_FORMATS, OUTPUT_FORMATS
 
 
 def test_ready(client: httpx.Client) -> None:

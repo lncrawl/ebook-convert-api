@@ -16,7 +16,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).parent.parent.parent
+REPO_ROOT = Path(__file__).parents[2]
 INPUT = Path(__file__).parent / "book.epub"
 CATALOG = REPO_ROOT / "data" / "catalog.json"
 OUTPUT = Path(__file__).parent / "output"

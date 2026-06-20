@@ -11,6 +11,7 @@ import io
 import json
 import os
 import zipfile
+from collections.abc import Iterator
 from pathlib import Path
 
 import httpx
@@ -20,7 +21,8 @@ BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
 
 # Load format lists from the committed catalog so we can parametrize without
 # hitting the server at collection time.
-_CATALOG_PATH = Path(__file__).parent.parent / "data" / "catalog.json"
+REPO_ROOT = Path(__file__).parents[2]
+_CATALOG_PATH = REPO_ROOT / "data" / "catalog.json"
 _catalog = json.loads(_CATALOG_PATH.read_text())
 INPUT_FORMATS: list[str] = sorted(_catalog["input_plugins"])
 OUTPUT_FORMATS: list[str] = sorted(_catalog["output_plugins"])
@@ -32,7 +34,7 @@ OUTPUT_FORMATS: list[str] = sorted(_catalog["output_plugins"])
 
 
 @pytest.fixture(scope="session")
-def client() -> httpx.Client:
+def client() -> Iterator[httpx.Client]:
     try:
         with httpx.Client(base_url=BASE_URL, timeout=10.0) as probe:
             resp = probe.get("/ready")

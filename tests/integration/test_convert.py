@@ -5,7 +5,7 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from tests.conftest import INPUT_FIXTURES, OUTPUT_FORMATS
+from .conftest import INPUT_FIXTURES, OUTPUT_FORMATS
 
 # ---------------------------------------------------------------------------
 # EPUB → every supported output format

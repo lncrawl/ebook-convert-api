@@ -31,7 +31,7 @@ from pathlib import Path
 CALIBRE_DIR = Path("/opt/calibre")
 EBOOK_CONVERT = CALIBRE_DIR / "ebook-convert"
 
-REPO_ROOT = Path(__file__).parent.parent
+REPO_ROOT = Path(__file__).parents[1]
 TEST_SCRIPT = REPO_ROOT / "tests" / "epub-test" / "test.py"
 TEST_INPUT = REPO_ROOT / "tests" / "epub-test" / "book.epub"
 

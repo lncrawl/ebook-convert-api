@@ -25,9 +25,9 @@ from pathlib import Path
 from threading import Lock
 
 FIXTURES = Path(__file__).parent
-REPO_ROOT = Path(__file__).parent.parent.parent
+REPO_ROOT = Path(__file__).parents[2]
 CATALOG = REPO_ROOT / "data" / "catalog.json"
-EPUB_TEST = Path(__file__).parent.parent / "epub-test" / "book.epub"
+EPUB_TEST = REPO_ROOT / "epub-test" / "book.epub"
 
 # Output formats used when testing each input fixture.
 # Formats skipped during cross-format testing (beyond the generator's SKIPPED set).
