@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from app.config import settings
-from app.core.introspector import calibre_version
+from ..config import settings
+from ..core.introspector import calibre_version
 
 router = APIRouter()
 

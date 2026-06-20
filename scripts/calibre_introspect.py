@@ -104,7 +104,7 @@ def collect_options(plugin):
 def collect_common_options():
     """Collect Calibre's shared pipeline options, grouped by category.
 
-    These are the conversion knobs (margins, fonts, TOC, metadata, heuristics …)
+    These are the conversion knobs (margins, fonts, TOC, metadata, heuristics ...)
     that apply to every conversion regardless of format. They live on the Plumber
     rather than on any single format plugin, so we drive a throwaway Plumber and
     read the option groups the CLI parser builds from it.

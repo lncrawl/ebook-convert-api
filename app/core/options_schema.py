@@ -13,9 +13,9 @@ from typing import Annotated, Any, Literal
 
 from fastapi import BackgroundTasks, Form, UploadFile
 
-from app.core import introspector
-from app.core.options_builder import _DENYLIST
-from app.models.introspection import OptionMetadata
+from ..models.introspection import OptionMetadata
+from .introspector import get_catalog, output_formats
+from .options_builder import _DENYLIST
 
 # Map a catalog `type` string to the Python annotation used for its form field.
 _SCALAR_TYPES: dict[str, type] = {
@@ -26,7 +26,7 @@ _SCALAR_TYPES: dict[str, type] = {
 }
 
 # Required output_format rendered as an enum dropdown in Swagger.
-OutputFormat = Literal[tuple(introspector.output_formats())]  # type: ignore[valid-type]
+OutputFormat = Literal[tuple(output_formats())]  # type: ignore[valid-type]
 
 # Fixed endpoint parameters — a catalog option sharing one of these names (e.g.
 # `output_format`) is skipped to avoid a duplicate parameter in the signature.
@@ -53,7 +53,7 @@ def _describe(opt: OptionMetadata) -> str:
 
 def _option_parameters() -> list[inspect.Parameter]:
     """One keyword-only Form parameter per unique catalog option (denylist excluded)."""
-    catalog = introspector.get_catalog()
+    catalog = get_catalog()
     seen: set[str] = set(_RESERVED)
     params: list[inspect.Parameter] = []
     for group in (

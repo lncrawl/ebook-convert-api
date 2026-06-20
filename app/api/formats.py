@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
-from app.core import introspector
-from app.models.introspection import FormatList, OptionGroup
+from ..core import introspector
+from ..models.introspection import FormatList, OptionGroup
 
 router = APIRouter(prefix="/formats")
 

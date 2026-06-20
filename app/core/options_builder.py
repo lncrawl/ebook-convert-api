@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.models.introspection import OptionMetadata
+from ..models.introspection import OptionMetadata
 
 # These flags accept filesystem paths and could be exploited to leak or write
 # files on the conversion worker. Block them regardless of what the caller sends.

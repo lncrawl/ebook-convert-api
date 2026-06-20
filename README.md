@@ -43,11 +43,11 @@ Converts a file. Blocks until done, then streams the result and cleans up.
 
 **Request** — `multipart/form-data`:
 
-| Field           | Type   | Required | Description                                                                          |
-| --------------- | ------ | -------- | ------------------------------------------------------------------------------------ |
-| `file`          | upload | yes      | Input ebook. Format detected from filename extension.                                |
-| `output_format` | enum   | yes      | Target format: `epub`, `mobi`, `azw3`, `pdf`, …                                      |
-| _option fields_ | varies | no       | One typed field per Calibre option — see [Conversion options](#conversion-options).  |
+| Field           | Type   | Required | Description                                                                         |
+| --------------- | ------ | -------- | ----------------------------------------------------------------------------------- |
+| `file`          | upload | yes      | Input ebook. Format detected from filename extension.                               |
+| `output_format` | enum   | yes      | Target format: `epub`, `mobi`, `azw3`, `pdf`, ...                                   |
+| _option fields_ | varies | no       | One typed field per Calibre option — see [Conversion options](#conversion-options). |
 
 **Response** — binary file with `Content-Disposition: attachment`.
 

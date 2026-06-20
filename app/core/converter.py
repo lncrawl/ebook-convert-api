@@ -7,7 +7,7 @@ import shutil
 import subprocess
 import tempfile
 
-from app.utils.errors import ConversionError
+from ..utils.errors import ConversionError
 
 
 def convert(input_path: str, output_path: str, args: list[str]) -> None:

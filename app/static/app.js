@@ -28,9 +28,16 @@ let snippets = { curl: "", python: "", js: "" };
 
 const ORIGIN = window.location.origin;
 
-function setStatus(msg, kind) {
+function setStatus(msg, kind, busy) {
   statusEl.className = kind || "";
-  statusEl.innerHTML = msg;
+  statusEl.textContent = "";
+  if (busy) {
+    const sp = document.createElement("span");
+    sp.className = "spinner";
+    statusEl.append(sp, " " + msg);
+  } else {
+    statusEl.textContent = msg;
+  }
 }
 
 function fillSelect(sel, items, placeholder) {
@@ -187,7 +194,7 @@ async function renderOptions() {
     return;
   }
   optionsBox.innerHTML =
-    '<p class="empty"><span class="spinner"></span> Loading options…</p>';
+    '<p class="empty"><span class="spinner"></span> Loading options...</p>';
   let groups;
   try {
     const res = await fetch(`/formats/${inFmt}/${outFmt}/options`);
@@ -402,7 +409,7 @@ async function onSubmit(e) {
   for (const [k, v] of selectedOptions()) fd.append(k, v);
 
   submitBtn.disabled = true;
-  setStatus('<span class="spinner"></span> Converting…');
+  setStatus("Converting...", "", true);
   try {
     const res = await fetch("/convert", { method: "POST", body: fd });
     if (!res.ok) {
@@ -460,5 +467,5 @@ copyBtn.addEventListener("click", copyCode);
 $("#form").addEventListener("submit", onSubmit);
 
 // Populate the output-format dropdown from the injected data and render initial code.
-fillSelect(outputSel, BOOTSTRAP.output_formats, "Select…");
+fillSelect(outputSel, BOOTSTRAP.output_formats, "Select...");
 updateCode();

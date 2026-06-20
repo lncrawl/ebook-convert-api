@@ -8,17 +8,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app import state
-from app.api import convert, formats, health, ui
-from app.config import settings
+from .api import convert, formats, health, ui
+from .config import settings
+from .state import set_executor, set_semaphore
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     executor = ProcessPoolExecutor(max_workers=settings.max_concurrent_jobs)
     semaphore = asyncio.Semaphore(settings.max_concurrent_jobs)
-    state.set_executor(executor)
-    state.set_semaphore(semaphore)
+    set_executor(executor)
+    set_semaphore(semaphore)
     try:
         yield
     finally:

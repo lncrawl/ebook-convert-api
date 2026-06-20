@@ -2,18 +2,19 @@ from __future__ import annotations
 
 import asyncio
 import zipfile
+from concurrent.futures.process import BrokenProcessPool
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
-from app import state
-from app.config import settings
-from app.core import introspector, options_schema
-from app.core.converter import convert
-from app.core.formats import MIME_TYPES
-from app.core.options_builder import build_cli_args
-from app.utils.tempfiles import ConversionTempDir
+from .. import state
+from ..config import settings
+from ..core import introspector, options_schema
+from ..core.converter import convert
+from ..core.formats import MIME_TYPES
+from ..core.options_builder import build_cli_args
+from ..utils.tempfiles import ConversionTempDir
 
 router = APIRouter()
 
@@ -46,8 +47,9 @@ async def convert_file(
     cli_args = build_cli_args(opts_dict, metadata)
 
     # Check semaphore without blocking — 503 immediately if all workers busy
+    # (Semaphore.locked() is True exactly when no permits remain).
     semaphore = state.get_semaphore()
-    if semaphore.locked() and semaphore._value == 0:  # type: ignore[attr-defined]
+    if semaphore.locked():
         raise HTTPException(
             status_code=503,
             detail="All conversion workers are busy. Retry after a moment.",
@@ -74,11 +76,12 @@ async def convert_file(
         output_path = tmp_path / f"output.{output_format}"
 
         async with semaphore:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
+            executor = state.get_executor()
             try:
                 await asyncio.wait_for(
                     loop.run_in_executor(
-                        state.get_executor(),
+                        executor,
                         convert,
                         str(input_path),
                         str(output_path),
@@ -90,6 +93,15 @@ async def convert_file(
                 raise HTTPException(
                     status_code=504,
                     detail=f"Conversion timed out after {settings.conversion_timeout_seconds}s",
+                ) from exc
+            except BrokenProcessPool as exc:
+                # A worker crashed (e.g. OOM/segfault), poisoning the pool. Rebuild
+                # it so the service recovers instead of failing every later request.
+                state.reset_executor(broken=executor)
+                raise HTTPException(
+                    status_code=503,
+                    detail="A conversion worker crashed; the pool was reset. Please retry.",
+                    headers={"Retry-After": "2"},
                 ) from exc
             except Exception as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc

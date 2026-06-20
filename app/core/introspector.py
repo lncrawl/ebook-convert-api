@@ -5,7 +5,7 @@ from __future__ import annotations
 import functools
 from pathlib import Path
 
-from app.models.introspection import OptionCatalog, OptionGroup, OptionMetadata
+from ..models.introspection import OptionCatalog, OptionGroup, OptionMetadata
 
 # data/catalog.json lives at project root (/app/data/catalog.json in container)
 CATALOG_PATH = Path(__file__).parent.parent.parent / "data" / "catalog.json"
