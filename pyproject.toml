@@ -25,13 +25,20 @@ dev = ["poethepoet>=0.32", "pyright>=1.1.410", "ruff>=0.15.17", "pytest>=8"]
 lint = "ruff check app scripts tests"
 format = "ruff format app scripts tests"
 typecheck = "pyright"
-catalog = "calibre-debug -e scripts/calibre_introspect.py data/catalog.json"
 test = "pytest tests/ -v"
 start = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
 watch = "uvicorn app.main:app --port 8000 --reload --reload-dir /app/app"
 up = "docker compose up --build"
 dev = "docker compose -f compose.dev.yml up --build"
 dev-exec = "docker compose -f compose.dev.yml exec api bash"
+catalog = "calibre-debug -e scripts/calibre_introspect.py data/catalog.json"
+catalog-dev = """
+    docker compose run --rm
+        -v ./scripts:/app/scripts
+        -v ./data:/app/data
+        api
+        calibre-debug -e /app/scripts/calibre_introspect.py ./data/catalog.json
+"""
 
 [tool.ruff]
 target-version = "py314"

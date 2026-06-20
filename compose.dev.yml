@@ -13,6 +13,5 @@ services:
       MAX_UPLOAD_MB: "100"
     volumes:
       - ./app:/app/app
-      - ./data:/app/data
       - ./tests:/app/tests
       - ./scripts:/app/scripts

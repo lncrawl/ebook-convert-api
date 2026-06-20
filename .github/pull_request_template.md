@@ -7,7 +7,7 @@
 - [ ] Tested locally (describe how below)
 - [ ] `uv lock` updated if dependencies changed
 - [ ] README updated if API surface, env vars, or configuration changed
-- [ ] Docker build verified (`docker build --build-arg CALIBRE_VERSION=9.9.0 .`) if Dockerfile changed
+- [ ] Docker build verified (`uv run poe up`) if Dockerfile changed
 
 ## How was this tested?
 

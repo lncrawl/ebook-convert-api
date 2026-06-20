@@ -12,7 +12,7 @@ from app.config import settings
 from app.core import introspector, options_schema
 from app.core.converter import convert
 from app.core.formats import MIME_TYPES
-from app.core.options_builder import build_plumber_options
+from app.core.options_builder import build_cli_args
 from app.utils.tempfiles import ConversionTempDir
 
 router = APIRouter()
@@ -40,10 +40,10 @@ async def convert_file(
 
     # Keep only options the user actually set, and only those valid for this format pair —
     # the form exposes the union of all options, but Calibre rejects cross-format flags.
-    allowed = options_schema.valid_option_names(suffix, output_format)
-    opts_dict = {k: v for k, v in options.items() if v is not None and k in allowed}
+    metadata = introspector.options_by_name(suffix, output_format)
+    opts_dict = {k: v for k, v in options.items() if v is not None and k in metadata}
 
-    plumber_opts = build_plumber_options(opts_dict)
+    cli_args = build_cli_args(opts_dict, metadata)
 
     # Check semaphore without blocking — 503 immediately if all workers busy
     semaphore = state.get_semaphore()
@@ -82,7 +82,7 @@ async def convert_file(
                         convert,
                         str(input_path),
                         str(output_path),
-                        plumber_opts,
+                        cli_args,
                     ),
                     timeout=float(settings.conversion_timeout_seconds),
                 )

@@ -1,10 +1,8 @@
-import re
-import subprocess
-
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
 from app.config import settings
+from app.core.introspector import calibre_version
 
 router = APIRouter()
 
@@ -14,7 +12,7 @@ async def health() -> JSONResponse:
     return JSONResponse(
         {
             "status": "ok",
-            "calibre_version": _calibre_version(),
+            "calibre_version": calibre_version(),
             "max_concurrent_jobs": settings.max_concurrent_jobs,
         }
     )
@@ -23,17 +21,3 @@ async def health() -> JSONResponse:
 @router.get("/ready")
 async def ready() -> JSONResponse:
     return JSONResponse({"status": "ready"})
-
-
-def _calibre_version() -> str:
-    try:
-        result = subprocess.run(
-            ["ebook-convert", "--version"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        match = re.search(r"calibre\s+(\S+)", result.stdout or result.stderr)
-        return match.group(1) if match else "unknown"
-    except Exception:
-        return "unknown"

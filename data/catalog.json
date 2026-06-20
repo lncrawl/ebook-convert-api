@@ -97,7 +97,7 @@
     "Heuristic Processing": [
       {
         "choices": null,
-        "cli_flag": "--dehyphenate",
+        "cli_flag": "--disable-dehyphenate",
         "default": true,
         "help": "Analyze hyphenated words throughout the document.  The document itself is used as a dictionary to determine whether hyphens should be retained or removed.",
         "name": "dehyphenate",
@@ -105,7 +105,7 @@
       },
       {
         "choices": null,
-        "cli_flag": "--delete-blank-paragraphs",
+        "cli_flag": "--disable-delete-blank-paragraphs",
         "default": true,
         "help": "Remove empty paragraphs from the document when they exist between every other paragraph",
         "name": "delete_blank_paragraphs",
@@ -121,7 +121,7 @@
       },
       {
         "choices": null,
-        "cli_flag": "--fix-indents",
+        "cli_flag": "--disable-fix-indents",
         "default": true,
         "help": "Turn indentation created from multiple non-breaking space entities into CSS indents.",
         "name": "fix_indents",
@@ -129,7 +129,7 @@
       },
       {
         "choices": null,
-        "cli_flag": "--format-scene-breaks",
+        "cli_flag": "--disable-format-scene-breaks",
         "default": true,
         "help": "Left aligned scene break markers are center aligned. Replace soft scene breaks that use multiple blank lines with horizontal rules.",
         "name": "format_scene_breaks",
@@ -145,7 +145,7 @@
       },
       {
         "choices": null,
-        "cli_flag": "--italicize-common-cases",
+        "cli_flag": "--disable-italicize-common-cases",
         "default": true,
         "help": "Look for common words and patterns that denote italics and italicize them.",
         "name": "italicize_common_cases",
@@ -153,7 +153,7 @@
       },
       {
         "choices": null,
-        "cli_flag": "--markup-chapter-headings",
+        "cli_flag": "--disable-markup-chapter-headings",
         "default": true,
         "help": "Detect unformatted chapter headings and sub headings. Change them to h2 and h3 tags.  This setting will not create a TOC, but can be used in conjunction with structure detection to create one.",
         "name": "markup_chapter_headings",
@@ -161,7 +161,7 @@
       },
       {
         "choices": null,
-        "cli_flag": "--renumber-headings",
+        "cli_flag": "--disable-renumber-headings",
         "default": true,
         "help": "Looks for occurrences of sequential <h1> or <h2> tags. The tags are renumbered to prevent splitting in the middle of chapter headings.",
         "name": "renumber_headings",
@@ -177,7 +177,7 @@
       },
       {
         "choices": null,
-        "cli_flag": "--unwrap-lines",
+        "cli_flag": "--disable-unwrap-lines",
         "default": true,
         "help": "Unwrap lines using punctuation and other formatting clues.",
         "name": "unwrap_lines",
@@ -658,7 +658,7 @@
       },
       {
         "choices": null,
-        "cli_flag": "--remove-fake-margins",
+        "cli_flag": "--disable-remove-fake-margins",
         "default": true,
         "help": "Some documents specify page margins by specifying a left and right margin on each individual paragraph. calibre will try to detect and remove these margins. Sometimes, this can cause the removal of margins that should not have been removed. In this case you can disable the removal.",
         "name": "remove_fake_margins",

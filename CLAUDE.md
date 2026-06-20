@@ -45,10 +45,6 @@ uv lock --upgrade     # upgrade all deps, regenerate uv.lock
 | `app/core/options_schema.py` | Builds the `POST /convert` signature from the catalog — one typed form field per option (enum dropdowns for `choice`), so Swagger renders rich docs |
 | `app/api/convert.py` | `POST /convert` endpoint; exposes every catalog option as a typed multipart form field |
 
-## Calibre version
-
-Pinned via `ARG CALIBRE_VERSION` in `Dockerfile`. To upgrade: change the arg, rebuild.
-
 ## Environment variables
 
 | Variable | Default | Notes |

@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import state
-from app.api import convert, formats, health
+from app.api import convert, formats, health, ui
 from app.config import settings
 
 
@@ -45,9 +45,10 @@ def create_app() -> FastAPI:
 
         app.add_middleware(AuthMiddleware)
 
-    app.include_router(health.router)
-    app.include_router(formats.router)
-    app.include_router(convert.router)
+    app.include_router(convert.router, tags=["Request"])
+    app.include_router(formats.router, tags=["Metadata"])
+    app.include_router(health.router, tags=["Server"])
+    app.include_router(ui.router, include_in_schema=False)
 
     return app
 

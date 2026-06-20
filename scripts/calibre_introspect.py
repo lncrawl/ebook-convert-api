@@ -32,8 +32,7 @@ output_path = Path(sys.argv[1])
 
 # Calibre groups its shared pipeline options under UPPERCASE titles; map them to
 # friendlier display names. Pipeline options that the parser leaves ungrouped
-# (the input/output profiles) are collected under "General". Note: `debug_pipeline`
-# in the Debug group is denylisted at conversion time by app.core.options_builder.
+# (the input/output profiles) are collected under "General".
 GROUP_TITLES = {
     "LOOK AND FEEL": "Look & Feel",
     "HEURISTIC PROCESSING": "Heuristic Processing",
@@ -135,6 +134,11 @@ def collect_common_options():
             entry = optionrec_to_dict(rec) if rec is not None else None
             if not entry or entry["name"] in seen:
                 continue
+            # Use the switch the CLI parser actually registers. For boolean
+            # options whose recommended value is True, Calibre exposes a negated
+            # switch (e.g. dehyphenate -> --disable-dehyphenate), so the guessed
+            # --<name> in optionrec_to_dict would be rejected by ebook-convert.
+            entry["cli_flag"] = parser_opt.get_opt_string()
             seen.add(entry["name"])
             results.append(entry)
         results.sort(key=lambda x: x["name"])

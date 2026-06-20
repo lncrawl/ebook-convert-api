@@ -88,10 +88,15 @@ ENV PATH="/opt/calibre:/app/.venv/bin:${PATH}"
 #------------------------------------------------
 FROM ghcr.io/astral-sh/uv:python3.14-trixie-slim AS builder
 
+WORKDIR /app
+
+COPY --from=calibre /opt/calibre /opt/calibre
+COPY --from=calibre /catalog.json ./data/catalog.json
+ENV PATH="/opt/calibre:/app/.venv/bin:${PATH}"
+
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy
 
-WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-editable
 

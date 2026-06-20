@@ -5,7 +5,7 @@ from __future__ import annotations
 import functools
 from pathlib import Path
 
-from app.models.introspection import OptionCatalog, OptionGroup
+from app.models.introspection import OptionCatalog, OptionGroup, OptionMetadata
 
 # data/catalog.json lives at project root (/app/data/catalog.json in container)
 CATALOG_PATH = Path(__file__).parent.parent.parent / "data" / "catalog.json"
@@ -27,6 +27,10 @@ _COMMON_ORDER = (
 @functools.lru_cache(maxsize=1)
 def get_catalog() -> OptionCatalog:
     return OptionCatalog.model_validate_json(CATALOG_PATH.read_text())
+
+
+def calibre_version() -> str:
+    return get_catalog().calibre_version
 
 
 def input_formats() -> list[str]:
@@ -66,3 +70,8 @@ def combined_options(in_fmt: str, out_fmt: str) -> list[OptionGroup]:
         groups.append(OptionGroup(group="Output", options=output_opts))
 
     return groups
+
+
+def options_by_name(in_fmt: str, out_fmt: str) -> dict[str, OptionMetadata]:
+    """Map option name -> metadata for an in_fmt -> out_fmt conversion."""
+    return {opt.name: opt for group in combined_options(in_fmt, out_fmt) for opt in group.options}

@@ -94,12 +94,3 @@ def convert_signature() -> inspect.Signature:
         ),
     ]
     return inspect.Signature([*fixed, *_option_parameters()])
-
-
-def valid_option_names(in_fmt: str, out_fmt: str) -> set[str]:
-    """Option names Calibre accepts for an in_fmt -> out_fmt conversion."""
-    return {
-        opt.name
-        for group in introspector.combined_options(in_fmt, out_fmt)
-        for opt in group.options
-    }

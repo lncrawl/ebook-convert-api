@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
 from typing import Any
+
+from app.models.introspection import OptionMetadata
 
 # These flags accept filesystem paths and could be exploited to leak or write
 # files on the conversion worker. Block them regardless of what the caller sends.
@@ -15,17 +16,44 @@ _DENYLIST: frozenset[str] = frozenset(
 )
 
 
-def build_plumber_options(options: dict[str, Any]) -> SimpleNamespace:
-    """Map a {name: value} options dict to a SimpleNamespace for Plumber.
+def _as_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in ("true", "1", "yes", "on")
 
-    Keys match the option names returned by GET /formats/{in}/{out}/options.
-    A null/None value means a boolean flag (passed with no argument to the CLI).
-    Keys not present in the dict are not set (Calibre uses its own defaults).
+
+def _bool_flag(opt: OptionMetadata) -> str:
+    """The switch ebook-convert registers for a boolean option.
+
+    A boolean has exactly one switch that flips its default: Calibre exposes a
+    default-True option as ``--disable-<name>`` and a default-False option as
+    ``--<name>``. We derive it from the default rather than trusting the
+    catalog's ``cli_flag`` for booleans, which can carry the un-negated guess.
     """
-    ns: dict[str, object] = {}
-    for raw_key, raw_value in options.items():
-        key = raw_key.lstrip("-").replace("-", "_")
-        if key in _DENYLIST:
+    hyphenated = opt.name.replace("_", "-")
+    return f"--disable-{hyphenated}" if opt.default else f"--{hyphenated}"
+
+
+def build_cli_args(
+    options: dict[str, Any],
+    metadata: dict[str, OptionMetadata],
+) -> list[str]:
+    """Map a {name: value} options dict to ebook-convert CLI arguments.
+
+    Boolean options are emitted only when the requested value differs from the
+    default (the single switch flips it). Non-boolean options use the catalog's
+    ``cli_flag`` and pass the value as the next argument.
+    """
+    args: list[str] = []
+    for name, value in options.items():
+        if name in _DENYLIST:
             continue
-        ns[key] = True if raw_value is None else raw_value
-    return SimpleNamespace(**ns)
+        opt = metadata.get(name)
+        if opt is None:
+            continue
+        if opt.type == "bool":
+            if _as_bool(value) != bool(opt.default):
+                args.append(_bool_flag(opt))
+        else:
+            args.extend([opt.cli_flag, str(value)])
+    return args

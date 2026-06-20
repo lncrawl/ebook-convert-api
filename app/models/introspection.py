@@ -28,6 +28,7 @@ class OptionCatalog(BaseModel):
     the shared pipeline options that apply to every conversion.
     """
 
+    calibre_version: str
     input_plugins: dict[str, list[OptionMetadata]]
     output_plugins: dict[str, list[OptionMetadata]]
     common_options: dict[str, list[OptionMetadata]]
