@@ -135,21 +135,17 @@ Environment variables (all optional):
 
 | Variable                     | Default | Description                                        |
 | ---------------------------- | ------- | -------------------------------------------------- |
-| `MAX_CONCURRENT_JOBS`        | auto    | Worker count. `0` re-derives from cgroup limits.   |
-| `MEMORY_PER_JOB_MB`          | `256`   | Per-job memory budget used for auto-sizing.        |
+| `MAX_CONCURRENT_JOBS`        | `2`     | Worker count (`ProcessPoolExecutor` size).         |
 | `CONVERSION_TIMEOUT_SECONDS` | `300`   | Per-job timeout. `504` returned on breach.         |
 | `MAX_UPLOAD_MB`              | `100`   | Upload size limit. `413` returned on breach.       |
 | `USE_AUTH`                   | `false` | Enable auth middleware stub (not yet implemented). |
 
-### Concurrency auto-sizing
+### Concurrency
 
-When `MAX_CONCURRENT_JOBS=0` (the default), the server reads Docker cgroup v2 limits at startup:
-
-```py
-max_workers = min(cpu_quota, memory_limit_mb / MEMORY_PER_JOB_MB)
-```
-
-So `docker run --cpus=2 --memory=1g` → 2 workers from CPU but only `1024 / 256 = 4` from memory → `min(2, 4) = 2` workers.
+`MAX_CONCURRENT_JOBS` sets the number of worker processes directly. Size it to the
+container's CPU allocation and the memory each `ebook-convert` job needs (the PDF path,
+via headless QtWebEngine, is the heaviest at ~350–550 MB per job). For example
+`docker run --cpus=4 --memory=3g` comfortably runs `MAX_CONCURRENT_JOBS=4`.
 
 ---
 

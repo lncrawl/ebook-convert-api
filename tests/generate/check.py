@@ -13,6 +13,7 @@ import base64
 import io
 import json
 import os
+import shutil
 import struct
 import subprocess
 import sys
@@ -312,11 +313,17 @@ _PRINT_LOCK = Lock()
 
 def calibre_convert(src: Path, dst: Path) -> bool:
     """Convert src to dst using ebook-convert. Returns True on success."""
-    result = subprocess.run(
-        ["ebook-convert", str(src), str(dst)],
-        capture_output=True,
-        timeout=120,
-    )
+    home = tempfile.mkdtemp(prefix="ebook-convert-home-")
+    env = {**os.environ, "HOME": home}
+    try:
+        result = subprocess.run(
+            ["ebook-convert", str(src), str(dst)],
+            capture_output=True,
+            timeout=120,
+            env=env,
+        )
+    finally:
+        shutil.rmtree(home, ignore_errors=True)
     if result.returncode != 0:
         with _PRINT_LOCK:
             print(f"  {yellow('WARN')}: ebook-convert {src.suffix} → {dst.suffix} failed.")

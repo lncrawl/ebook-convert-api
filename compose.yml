@@ -8,15 +8,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      MAX_CONCURRENT_JOBS: "0"
-      MEMORY_PER_JOB_MB: "256"
+      MAX_CONCURRENT_JOBS: "4"
       CONVERSION_TIMEOUT_SECONDS: "300"
       MAX_UPLOAD_MB: "100"
     deploy:
       resources:
         limits:
-          cpus: "2"
-          memory: 2g
+          cpus: "4"
+          memory: 3g
     healthcheck:
       test:
         [

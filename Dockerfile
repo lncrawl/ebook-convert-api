@@ -57,7 +57,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     QT_QPA_PLATFORM=offscreen \
     QTWEBENGINE_DISABLE_SANDBOX=1 \
-    QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox --disable-gpu --disable-software-rasterizer"
+    QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox --disable-gpu --disable-software-rasterizer --disable-dev-shm-usage"
 
 # Shared libraries the bundled Qt/WebEngine needs for headless conversion. The
 # heavy Mesa software rasterizer (libLLVM/gallium/llvmpipe, ~180 MB) is pulled in
