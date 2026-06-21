@@ -15,7 +15,10 @@ const LANG_LABEL = {
   curl: "cURL",
   python: "Python · requests",
   js: "JavaScript · fetch",
+  go: "Go · net/http",
 };
+const EMPTY_SNIPPETS = () =>
+  Object.fromEntries(Object.keys(LANG_LABEL).map((k) => [k, ""]));
 
 // Format lists are injected by the server into a JSON data island, so there is
 // no need to fetch("/formats") on load.
@@ -24,7 +27,7 @@ const BOOTSTRAP = JSON.parse(
 );
 let inputFormats = BOOTSTRAP.input_formats;
 let activeLang = "curl";
-let snippets = { curl: "", python: "", js: "" };
+let snippets = EMPTY_SNIPPETS();
 
 const ORIGIN = window.location.origin;
 
@@ -371,6 +374,59 @@ function genJs(opts, out) {
   ].join("\n");
 }
 
+// A safe identifier derived from an option name (for per-file variables).
+const ident = (n) => n.replace(/[^a-zA-Z0-9]/g, "_");
+
+function genGo(opts, out) {
+  const body = [
+    `	file, _ := os.Open(${q(fileName())})`,
+    `	fw, _ := w.CreateFormFile("file", ${q(fileName())})`,
+    "	io.Copy(fw, file)",
+    "	file.Close()",
+    "",
+    `	w.WriteField("output_format", ${q(out)})`,
+  ];
+  for (const o of opts) {
+    if (o.file) {
+      const v = ident(o.name);
+      body.push(
+        `	${v}, _ := os.Open(${q(o.value)})`,
+        `	${v}w, _ := w.CreateFormFile(${q(o.name)}, ${q(o.value)})`,
+        `	io.Copy(${v}w, ${v})`,
+        `	${v}.Close()`,
+      );
+    } else {
+      body.push(`	w.WriteField(${q(o.name)}, ${q(o.value)})`);
+    }
+  }
+  return [
+    "package main",
+    "",
+    "import (",
+    '	"bytes"',
+    '	"io"',
+    '	"mime/multipart"',
+    '	"net/http"',
+    '	"os"',
+    ")",
+    "",
+    "func main() {",
+    "	var buf bytes.Buffer",
+    "	w := multipart.NewWriter(&buf)",
+    "",
+    ...body,
+    "	w.Close()",
+    "",
+    `	resp, _ := http.Post(${q(ORIGIN + "/convert")}, w.FormDataContentType(), &buf)`,
+    "	defer resp.Body.Close()",
+    "",
+    `	dst, _ := os.Create(${q(outName())})`,
+    "	defer dst.Close()",
+    "	io.Copy(dst, resp.Body)",
+    "}",
+  ].join("\n");
+}
+
 // line-based highlighter (safe: textContent per token)
 function highlight(code, lang) {
   codeEl.innerHTML = "";
@@ -404,7 +460,7 @@ function updateCode() {
   refreshSetIndicators();
   const out = outputSel.value;
   if (!out) {
-    snippets = { curl: "", python: "", js: "" };
+    snippets = EMPTY_SNIPPETS();
     codeEl.innerHTML =
       '<span class="ln com"># select an output format to build the request</span>';
     return;
@@ -414,6 +470,7 @@ function updateCode() {
     curl: genCurl(opts, out),
     python: genPython(opts, out),
     js: genJs(opts, out),
+    go: genGo(opts, out),
   };
   highlight(snippets[activeLang], activeLang);
 }
