@@ -69,8 +69,8 @@ def test_build_cli_args_skips_bool_equal_to_default():
 
 def test_build_cli_args_skips_denylisted_and_unknown():
     meta = {"margin_top": _meta("margin_top", "int", default=5)}
-    # "cover" is denylisted; "mystery" has no metadata → both dropped.
-    assert build_cli_args({"cover": "/etc/passwd", "mystery": "x"}, meta) == []
+    # "extract_to" is denylisted; "mystery" has no metadata → both dropped.
+    assert build_cli_args({"extract_to": "/etc/passwd", "mystery": "x"}, meta) == []
 
 
 # --- options_schema --------------------------------------------------------
@@ -118,6 +118,29 @@ def test_combined_and_by_name_for_known_pair():
     assert groups
     by_name = introspector.options_by_name(in_fmt, out_fmt)
     assert by_name and all(isinstance(v, OptionMetadata) for v in by_name.values())
+
+
+def test_file_options_are_retyped_for_display():
+    # File-path options must be served as "file" so the UI renders a picker and
+    # the endpoint substitutes the uploaded path.
+    by_name = introspector.options_by_name("epub", "pdf")
+    assert by_name["cover"].type == "file"
+    assert by_name["read_metadata_from_opf"].type == "file"
+
+
+def test_hidden_options_are_not_exposed():
+    # Unsafe path flags and Calibre's Debug group must never reach users — not in
+    # the per-pair options (UI + validation) nor the Debug group itself.
+    # epub->epub is a pair whose output owns extract_to.
+    by_name = introspector.options_by_name("epub", "epub")
+    assert {"extract_to", "verbose", "debug_pipeline"}.isdisjoint(by_name)
+    groups = {g.group for g in introspector.combined_options("epub", "epub")}
+    assert "Debug" not in groups
+
+
+def test_convert_signature_omits_hidden_params():
+    params = set(options_schema.convert_signature().parameters)
+    assert {"extract_to", "verbose", "debug_pipeline"}.isdisjoint(params)
 
 
 def test_combined_options_unknown_pair_is_empty_of_format_groups():
@@ -177,3 +200,10 @@ def test_conversion_tempdir_cleanup_method():
     assert path.exists()
     tmp.cleanup()
     assert not path.exists()
+
+
+def test_conversion_tempdir_exit_without_enter():
+    # Exiting before entering (path is None) is a safe no-op.
+    tmp = ConversionTempDir()
+    tmp.__exit__(None, None, None)
+    assert tmp.path is None

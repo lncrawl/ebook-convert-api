@@ -14,7 +14,7 @@ import zipfile
 from collections.abc import Iterator
 from pathlib import Path
 
-import httpx
+import httpx2
 import pytest
 
 BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000")
@@ -34,15 +34,15 @@ OUTPUT_FORMATS: list[str] = sorted(_catalog["output_plugins"])
 
 
 @pytest.fixture(scope="session")
-def client() -> Iterator[httpx.Client]:
+def client() -> Iterator[httpx2.Client]:
     try:
-        with httpx.Client(base_url=BASE_URL, timeout=10.0) as probe:
+        with httpx2.Client(base_url=BASE_URL, timeout=10.0) as probe:
             resp = probe.get("/ready")
             resp.raise_for_status()
     except Exception as exc:
         pytest.skip(f"API server not reachable at {BASE_URL}: {exc}")
 
-    with httpx.Client(base_url=BASE_URL, timeout=180.0) as c:
+    with httpx2.Client(base_url=BASE_URL, timeout=180.0) as c:
         yield c
 
 

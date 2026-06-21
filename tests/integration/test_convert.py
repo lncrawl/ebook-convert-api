@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import httpx
+import httpx2
 import pytest
 
 from .conftest import INPUT_FIXTURES, OUTPUT_FORMATS
@@ -14,7 +14,7 @@ from .conftest import INPUT_FIXTURES, OUTPUT_FORMATS
 
 @pytest.mark.parametrize("out_fmt", OUTPUT_FORMATS)
 def test_epub_to_output_format(
-    client: httpx.Client,
+    client: httpx2.Client,
     epub_fixture: tuple[str, bytes],
     out_fmt: str,
 ) -> None:
@@ -36,7 +36,7 @@ def test_epub_to_output_format(
 
 
 @pytest.mark.parametrize("in_fmt", [f for f in INPUT_FIXTURES if f != "epub"])
-def test_input_format_to_epub(client: httpx.Client, in_fmt: str) -> None:
+def test_input_format_to_epub(client: httpx2.Client, in_fmt: str) -> None:
     filename, data = INPUT_FIXTURES[in_fmt]
     resp = client.post(
         "/convert",
@@ -53,7 +53,7 @@ def test_input_format_to_epub(client: httpx.Client, in_fmt: str) -> None:
 
 
 def test_conversion_with_options(
-    client: httpx.Client,
+    client: httpx2.Client,
     epub_fixture: tuple[str, bytes],
 ) -> None:
     filename, data = epub_fixture
@@ -77,7 +77,7 @@ def test_conversion_with_options(
 
 
 def test_unsupported_output_format(
-    client: httpx.Client,
+    client: httpx2.Client,
     epub_fixture: tuple[str, bytes],
 ) -> None:
     filename, data = epub_fixture
@@ -90,7 +90,7 @@ def test_unsupported_output_format(
     assert resp.status_code == 422
 
 
-def test_unrecognized_input_filename(client: httpx.Client) -> None:
+def test_unrecognized_input_filename(client: httpx2.Client) -> None:
     resp = client.post(
         "/convert",
         files={"file": ("book.xyz_bogus", b"irrelevant", "application/octet-stream")},
@@ -100,7 +100,7 @@ def test_unrecognized_input_filename(client: httpx.Client) -> None:
 
 
 def test_option_wrong_type_rejected(
-    client: httpx.Client,
+    client: httpx2.Client,
     epub_fixture: tuple[str, bytes],
 ) -> None:
     filename, data = epub_fixture
@@ -113,7 +113,7 @@ def test_option_wrong_type_rejected(
 
 
 def test_option_invalid_choice_rejected(
-    client: httpx.Client,
+    client: httpx2.Client,
     epub_fixture: tuple[str, bytes],
 ) -> None:
     filename, data = epub_fixture

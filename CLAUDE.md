@@ -52,10 +52,10 @@ uv lock --upgrade     # upgrade all deps, regenerate uv.lock
 | `app/config.py` | Settings incl. `max_concurrent_jobs` |
 | `app/state.py` | Shared `ProcessPoolExecutor` + `asyncio.Semaphore`; `reset_executor()` rebuilds the pool after a worker crash |
 | `app/core/converter.py` | Calls `ebook-convert` CLI via subprocess (runs in executor worker) |
-| `app/core/introspector.py` | Loads `data/catalog.json`; derives format lists + per-pair grouped options |
-| `app/core/options_builder.py` | Maps a validated `{name: value}` options dict → `ebook-convert` CLI args (each option's `cli_flag` + default; booleans emitted only when they differ from the default) |
-| `app/core/options_schema.py` | Builds the `POST /convert` signature from the catalog — one typed form field per option (enum dropdowns for `choice`), so Swagger renders rich docs |
-| `app/api/convert.py` | `POST /convert` endpoint; exposes every catalog option as a typed multipart form field |
+| `app/core/introspector.py` | Loads `data/catalog.json`; derives format lists + per-pair grouped options. Filters out `_HIDDEN_OPTIONS` (so the Debug group and unsafe flags never reach users) and re-types `FILE_OPTIONS` entries to `type: "file"` for the UI/Swagger |
+| `app/core/options_builder.py` | Maps a validated `{name: value}` options dict → `ebook-convert` CLI args (each option's `cli_flag` + default; booleans emitted only when they differ from the default). Defines the option-policy sets: `_DENYLIST` (unsafe path flags blocked from CLI building), `FILE_OPTIONS` (exposed as uploads), and `_HIDDEN_OPTIONS` (denylist + Debug group, never shown to users) |
+| `app/core/options_schema.py` | Builds the `POST /convert` signature from the catalog — one typed form field per option (enum dropdowns for `choice`, `UploadFile` for `FILE_OPTIONS`), skipping `_HIDDEN_OPTIONS`, so Swagger renders rich docs |
+| `app/api/convert.py` | `POST /convert` endpoint; exposes each catalog option as a typed multipart form field. `_partition_options` splits scalars from file uploads; uploaded `FILE_OPTIONS` files are saved into the job temp dir and their path substituted before building CLI args (a raw path string is rejected) |
 | `app/api/ui.py` | Serves `GET /` — a Jinja-rendered single-page UI with `app/static/{styles.css,app.js}` inlined and the format lists injected (no client `fetch("/formats")`) |
 
 ## Environment variables

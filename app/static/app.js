@@ -99,6 +99,9 @@ function fieldFor(opt) {
       o.textContent = t;
       control.appendChild(o);
     }
+  } else if (opt.type === "file") {
+    control = document.createElement("input");
+    control.type = "file";
   } else if (opt.type === "choice" && opt.choices) {
     control = document.createElement("select");
     const e = document.createElement("option");
@@ -250,11 +253,24 @@ function setAllOpen(open) {
 }
 
 // --- selection state ---------------------------------------------------
+// An option is "set" when it has a value, or — for file inputs — a chosen file.
+// Returns {name, value, file}: `file` is the File object for upload fields, else null.
+function isSet(c) {
+  return c.type === "file"
+    ? !!c.files?.length
+    : c.value !== "" && c.value != null;
+}
+
 function selectedOptions() {
   const out = [];
   for (const c of optionsBox.querySelectorAll("[data-opt-name]")) {
-    if (c.value !== "" && c.value != null)
-      out.push([c.dataset.optName, c.value]);
+    if (!isSet(c)) continue;
+    if (c.type === "file") {
+      const f = c.files[0];
+      out.push({ name: c.dataset.optName, value: f.name, file: f });
+    } else {
+      out.push({ name: c.dataset.optName, value: c.value, file: null });
+    }
   }
   return out;
 }
@@ -264,7 +280,7 @@ function refreshSetIndicators() {
   for (const group of optionsBox.querySelectorAll("details.group")) {
     let n = 0;
     for (const c of group.querySelectorAll("[data-opt-name]")) {
-      if (c.value !== "" && c.value != null) n++;
+      if (isSet(c)) n++;
     }
     group.classList.toggle("has-set", n > 0);
     total += n;
@@ -287,27 +303,36 @@ function genCurl(opts, out) {
   const lines = [`curl -X POST ${q(ORIGIN + "/convert")} \\`];
   lines.push(`  -F ${q("file=@" + fileName())} \\`);
   lines.push(`  -F ${q("output_format=" + out)} \\`);
-  for (const [k, v] of opts) lines.push(`  -F ${q(k + "=" + v)} \\`);
+  // File-path options use curl's "@" syntax to attach the file.
+  for (const o of opts)
+    lines.push(
+      `  -F ${q(o.name + "=" + (o.file ? "@" + o.value : o.value))} \\`,
+    );
   lines.push(`  -o ${q(outName())}`);
   return lines.join("\n");
 }
 
 function genPython(opts, out) {
+  const files = [`        "file": open(${q(fileName())}, "rb"),`];
   const data = [`            "output_format": ${q(out)},`];
-  for (const [k, v] of opts) data.push(`            ${q(k)}: ${q(v)},`);
+  for (const o of opts) {
+    if (o.file) files.push(`        ${q(o.name)}: open(${q(o.value)}, "rb"),`);
+    else data.push(`            ${q(o.name)}: ${q(o.value)},`);
+  }
   return [
     "import requests",
     "",
     `url = ${q(ORIGIN + "/convert")}`,
     "",
-    `with open(${q(fileName())}, "rb") as f:`,
-    "    resp = requests.post(",
-    "        url,",
-    '        files={"file": f},',
-    "        data={",
+    "resp = requests.post(",
+    "    url,",
+    "    files={",
+    ...files,
+    "    },",
+    "    data={",
     ...data,
-    "        },",
-    "    )",
+    "    },",
+    ")",
     "",
     "resp.raise_for_status()",
     `with open(${q(outName())}, "wb") as out:`,
@@ -320,7 +345,14 @@ function genJs(opts, out) {
     'form.append("file", fileInput.files[0]);',
     `form.append("output_format", ${q(out)});`,
   ];
-  for (const [k, v] of opts) appends.push(`form.append(${q(k)}, ${q(v)});`);
+  for (const o of opts) {
+    // A file-path option needs a File object; reference it by a placeholder var.
+    if (o.file)
+      appends.push(
+        `form.append(${q(o.name)}, ${o.name}File); // your ${o.value}`,
+      );
+    else appends.push(`form.append(${q(o.name)}, ${q(o.value)});`);
+  }
   return [
     "const form = new FormData();",
     ...appends,
@@ -406,7 +438,7 @@ async function onSubmit(e) {
   const fd = new FormData();
   fd.append("file", fileInput.files[0]);
   fd.append("output_format", outputSel.value);
-  for (const [k, v] of selectedOptions()) fd.append(k, v);
+  for (const o of selectedOptions()) fd.append(o.name, o.file || o.value);
 
   submitBtn.disabled = true;
   setStatus("Converting...", "", true);

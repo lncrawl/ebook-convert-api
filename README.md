@@ -74,7 +74,7 @@ Returns the full list of supported input and output formats.
 
 ### `GET /formats/{in_fmt}/{out_fmt}/options`
 
-Returns every Calibre option valid for that conversion, grouped by category (pre-generated at image build time) — useful for building UIs or discovering option names. Each group has a `group` label and a list of option metadata (`name`, `cli_flag`, `help`, `type`, `default`, `choices`). The groups are: `Input` (input-format options), the shared categories (`Look & Feel`, `Structure Detection`, `Table of Contents`, `Heuristic Processing`, `Search & Replace`, `Metadata`, `General`, `Debug`), and `Output` (output-format options).
+Returns every Calibre option valid for that conversion, grouped by category (pre-generated at image build time) — useful for building UIs or discovering option names. Each group has a `group` label and a list of option metadata (`name`, `cli_flag`, `help`, `type`, `default`, `choices`). The `type` is one of `str`, `int`, `float`, `bool`, `choice`, or `file` (an upload — see [Conversion options](#conversion-options)). The groups are: `Input` (input-format options), the shared categories (`Look & Feel`, `Structure Detection`, `Table of Contents`, `Heuristic Processing`, `Search & Replace`, `Metadata`, `General`), and `Output` (output-format options). Server-only options (see the security note) are never included.
 
 ```json
 [
@@ -134,7 +134,27 @@ chosen `input → output` pair are applied; any others you send are ignored. To 
 set, types, defaults, and allowed `choices` for a given pair, call
 [`GET /formats/{in}/{out}/options`](#get-formatsin_fmtout_fmtoptions).
 
-> **Security:** Filesystem-path flags (`--debug-pipeline`, `--extract-to`, `--cover`, `--transform-css-rules`) are not exposed and are blocked by the server regardless of what is sent.
+### File-path options
+
+A few Calibre options take a **file** rather than a scalar value (`type: "file"` in the options
+metadata): `cover`, `search_replace`, `transform_css_rules`, `transform_html_rules`, and
+`read_metadata_from_opf`. Send these as additional file fields — the server stores the upload for
+the job and passes its path to Calibre. A raw server-side path is never accepted (sending one as a
+text value yields `422`).
+
+```sh
+curl -s \
+  -F "file=@book.epub" \
+  -F "output_format=epub" \
+  -F "cover=@cover.jpg" \
+  http://localhost:8000/convert \
+  --output book.epub
+```
+
+> **Security:** Server-only flags are never exposed and are ignored if sent: the unsafe
+> output-directory flags `--debug-pipeline` and `--extract-to`, and Calibre's Debug group
+> (`--verbose`). The file-path options above are the only way to reference a file, and only via
+> upload — the server never reads an arbitrary host path.
 
 ---
 

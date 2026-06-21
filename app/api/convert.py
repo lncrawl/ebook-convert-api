@@ -7,18 +7,60 @@ from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from starlette.datastructures import UploadFile as StarletteUploadFile
 
 from .. import state
 from ..config import settings
 from ..core import introspector, options_schema
 from ..core.converter import convert
 from ..core.formats import MIME_TYPES
-from ..core.options_builder import build_cli_args
+from ..core.options_builder import FILE_OPTIONS, build_cli_args
+from ..models.introspection import OptionMetadata
 from ..utils.tempfiles import ConversionTempDir
 
 router = APIRouter()
 
 _MAX_UPLOAD_BYTES = settings.max_upload_mb * 1024 * 1024
+
+
+def _partition_options(
+    options: dict[str, object],
+    metadata: dict[str, OptionMetadata],
+) -> tuple[dict[str, object], dict[str, StarletteUploadFile]]:
+    """Split submitted options into scalar values and file uploads.
+
+    Only options the user actually set and that are valid for this format pair
+    are kept (the form exposes the union of all options, but Calibre rejects
+    cross-format flags). File-path options must arrive as an actual upload; a
+    stray non-upload value (e.g. a string path) is dropped so a caller can't
+    point the flag at a server-side path. (The multipart parser yields
+    Starlette's UploadFile, of which FastAPI's is a subclass — match the base.)
+    """
+    opts_dict: dict[str, object] = {}
+    file_uploads: dict[str, StarletteUploadFile] = {}
+    for name, value in options.items():
+        if value is None or name not in metadata:
+            continue
+        if name in FILE_OPTIONS:
+            if isinstance(value, StarletteUploadFile) and value.filename:
+                file_uploads[name] = value
+        else:
+            opts_dict[name] = value
+    return opts_dict, file_uploads
+
+
+async def _save_upload(upload: StarletteUploadFile, dest: Path) -> None:
+    """Stream an upload to ``dest``, enforcing the global per-file size limit."""
+    bytes_read = 0
+    with dest.open("wb") as fh:
+        while chunk := await upload.read(1024 * 64):
+            bytes_read += len(chunk)
+            if bytes_read > _MAX_UPLOAD_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"Upload exceeds {settings.max_upload_mb} MB limit.",
+                )
+            fh.write(chunk)
 
 
 async def convert_file(
@@ -39,12 +81,8 @@ async def convert_file(
     # output_format is already constrained to the supported set by the enum annotation.
     output_format = output_format.lower()
 
-    # Keep only options the user actually set, and only those valid for this format pair —
-    # the form exposes the union of all options, but Calibre rejects cross-format flags.
     metadata = introspector.options_by_name(suffix, output_format)
-    opts_dict = {k: v for k, v in options.items() if v is not None and k in metadata}
-
-    cli_args = build_cli_args(opts_dict, metadata)
+    opts_dict, file_uploads = _partition_options(options, metadata)
 
     # Check semaphore without blocking — 503 immediately if all workers busy
     # (Semaphore.locked() is True exactly when no permits remain).
@@ -60,18 +98,19 @@ async def convert_file(
     tmp_path = tmp.__enter__()
 
     try:
-        # Stream upload into temp dir, enforcing size limit
+        # Stream the main upload into the temp dir, enforcing the size limit.
         input_path = tmp_path / f"input.{suffix}"
-        bytes_read = 0
-        with input_path.open("wb") as fh:
-            while chunk := await file.read(1024 * 64):
-                bytes_read += len(chunk)
-                if bytes_read > _MAX_UPLOAD_BYTES:
-                    raise HTTPException(
-                        status_code=413,
-                        detail=f"Upload exceeds {settings.max_upload_mb} MB limit.",
-                    )
-                fh.write(chunk)
+        await _save_upload(file, input_path)
+
+        # Save any file-path option uploads alongside it and point the flag at the
+        # saved path (keeping the original suffix, which Calibre uses e.g. to
+        # detect the cover's image type).
+        for name, upload in file_uploads.items():
+            dest = tmp_path / f"opt-{name}{Path(upload.filename or '').suffix}"
+            await _save_upload(upload, dest)
+            opts_dict[name] = str(dest)
+
+        cli_args = build_cli_args(opts_dict, metadata)
 
         output_path = tmp_path / f"output.{output_format}"
 

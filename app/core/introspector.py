@@ -6,6 +6,7 @@ import functools
 from pathlib import Path
 
 from ..models.introspection import OptionCatalog, OptionGroup, OptionMetadata
+from .options_builder import _HIDDEN_OPTIONS, FILE_OPTIONS
 
 # data/catalog.json lives at project root (/app/data/catalog.json in container)
 REPO_ROOT = Path(__file__).parents[2]
@@ -48,6 +49,25 @@ def _ordered_common_groups(common: dict[str, list]) -> list[str]:
     return known + extra
 
 
+def _visible(options: list[OptionMetadata]) -> list[OptionMetadata]:
+    """Drop options that are never surfaced to API users (unsafe/debug flags)."""
+    return [opt for opt in options if opt.name not in _HIDDEN_OPTIONS]
+
+
+def _mark_file_options(options: list[OptionMetadata]) -> list[OptionMetadata]:
+    """Re-type the catalog's file-path options as ``"file"`` for display/dispatch.
+
+    Calibre advertises these as plain ``str`` flags, but the API takes an upload
+    for them. The ``"file"`` type tells the UI to render a file picker and the
+    endpoint to substitute the saved upload path. Copies are returned so the
+    cached catalog objects stay untouched.
+    """
+    return [
+        opt.model_copy(update={"type": "file"}) if opt.name in FILE_OPTIONS else opt
+        for opt in options
+    ]
+
+
 def combined_options(in_fmt: str, out_fmt: str) -> list[OptionGroup]:
     """Every option valid for an in_fmt -> out_fmt conversion, grouped for display.
 
@@ -57,18 +77,18 @@ def combined_options(in_fmt: str, out_fmt: str) -> list[OptionGroup]:
     catalog = get_catalog()
     groups: list[OptionGroup] = []
 
-    input_opts = catalog.input_plugins.get(in_fmt, [])
+    input_opts = _visible(catalog.input_plugins.get(in_fmt, []))
     if input_opts:
-        groups.append(OptionGroup(group="Input", options=input_opts))
+        groups.append(OptionGroup(group="Input", options=_mark_file_options(input_opts)))
 
     for name in _ordered_common_groups(catalog.common_options):
-        options = catalog.common_options[name]
+        options = _visible(catalog.common_options[name])
         if options:
-            groups.append(OptionGroup(group=name, options=options))
+            groups.append(OptionGroup(group=name, options=_mark_file_options(options)))
 
-    output_opts = catalog.output_plugins.get(out_fmt, [])
+    output_opts = _visible(catalog.output_plugins.get(out_fmt, []))
     if output_opts:
-        groups.append(OptionGroup(group="Output", options=output_opts))
+        groups.append(OptionGroup(group="Output", options=_mark_file_options(output_opts)))
 
     return groups
 

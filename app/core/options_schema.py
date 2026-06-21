@@ -11,11 +11,11 @@ import html
 import inspect
 from typing import Annotated, Any, Literal
 
-from fastapi import BackgroundTasks, Form, UploadFile
+from fastapi import BackgroundTasks, File, Form, UploadFile
 
 from ..models.introspection import OptionMetadata
 from .introspector import get_catalog, output_formats
-from .options_builder import _DENYLIST
+from .options_builder import _HIDDEN_OPTIONS, FILE_OPTIONS
 
 # Map a catalog `type` string to the Python annotation used for its form field.
 _SCALAR_TYPES: dict[str, type] = {
@@ -62,15 +62,20 @@ def _option_parameters() -> list[inspect.Parameter]:
         *catalog.output_plugins.values(),
     ):
         for opt in group:
-            if opt.name in _DENYLIST or opt.name in seen:
+            if opt.name in _HIDDEN_OPTIONS or opt.name in seen:
                 continue
             seen.add(opt.name)
+            if opt.name in FILE_OPTIONS:
+                # A file-path option: render as an optional upload, not free text.
+                annotation = Annotated[UploadFile | None, File(description=_describe(opt))]
+            else:
+                annotation = Annotated[_annotation_for(opt), Form(description=_describe(opt))]
             params.append(
                 inspect.Parameter(
                     opt.name,
                     inspect.Parameter.KEYWORD_ONLY,
                     default=None,
-                    annotation=Annotated[_annotation_for(opt), Form(description=_describe(opt))],
+                    annotation=annotation,
                 )
             )
     return params

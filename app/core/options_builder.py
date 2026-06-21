@@ -4,16 +4,34 @@ from typing import Any
 
 from ..models.introspection import OptionMetadata
 
-# These flags accept filesystem paths and could be exploited to leak or write
-# files on the conversion worker. Block them regardless of what the caller sends.
+# These flags name an output *directory* on the worker; there is nothing for a
+# caller to upload, and an arbitrary path could be used to write files outside
+# the job's temp dir. Block them regardless of what the caller sends.
 _DENYLIST: frozenset[str] = frozenset(
     {
         "debug_pipeline",
         "extract_to",
-        "transform_css_rules",
-        "cover",
     }
 )
+
+# These flags take an *input file* path on the worker. We expose them as file
+# uploads instead of free-text paths: the endpoint saves the uploaded file into
+# the job's temp dir and substitutes that path before build_cli_args runs, so a
+# caller can never point them at an arbitrary server path.
+FILE_OPTIONS: frozenset[str] = frozenset(
+    {
+        "cover",
+        "read_metadata_from_opf",
+        "search_replace",
+        "transform_css_rules",
+        "transform_html_rules",
+    }
+)
+
+# Options never surfaced to API users (Swagger form + web UI): the unsafe path
+# flags above, plus Calibre's Debug group (server-side diagnostics that do
+# nothing useful through the API).
+_HIDDEN_OPTIONS: frozenset[str] = _DENYLIST | frozenset({"verbose"})
 
 
 def _as_bool(value: Any) -> bool:

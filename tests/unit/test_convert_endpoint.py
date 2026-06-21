@@ -11,9 +11,25 @@ from pathlib import Path
 
 import app.api.convert as convert_mod
 from app import state
+from app.core import introspector
 from app.utils.errors import ConversionError
 
 FILES = {"file": ("book.txt", b"hello world", "text/plain")}
+
+
+def test_partition_options_filters_and_drops_bad_file_values():
+    metadata = introspector.options_by_name("epub", "epub")
+    opts, files = convert_mod._partition_options(
+        {
+            "title": "Hi",  # scalar, valid → kept
+            "cover": "/etc/passwd",  # file option, non-upload string → dropped
+            "margin_top": None,  # unset → skipped
+            "not_an_option": "x",  # not in metadata → skipped
+        },
+        metadata,
+    )
+    assert opts == {"title": "Hi"}
+    assert files == {}
 
 
 def _post(client, output="epub", file=FILES["file"], **data):
@@ -128,3 +144,66 @@ def test_missing_output_returns_500(client, set_convert):
 def test_unknown_output_format_rejected(client):
     r = _post(client, output="not_a_format")
     assert r.status_code == 422  # constrained by the enum annotation
+
+
+def test_file_option_upload_is_saved_and_passed(client, set_convert):
+    captured = {}
+
+    def fake(inp, outp, args):
+        idx = args.index("--cover")
+        path = args[idx + 1]
+        captured["path"] = path
+        captured["bytes"] = Path(path).read_bytes()
+        Path(outp).write_bytes(b"x")
+
+    set_convert(fake)
+    r = client.post(
+        "/convert",
+        files={
+            "file": ("book.txt", b"hello", "text/plain"),
+            "cover": ("art.jpg", b"\xff\xd8imagedata", "image/jpeg"),
+        },
+        data={"output_format": "epub"},
+    )
+    assert r.status_code == 200, r.text
+    # The flag points at a file saved in the job temp dir, keeping the suffix,
+    # and holds exactly the uploaded bytes — not a caller-supplied server path.
+    assert captured["path"].endswith(".jpg")
+    assert captured["bytes"] == b"\xff\xd8imagedata"
+
+
+def test_file_option_as_plain_string_is_rejected(client, set_convert):
+    set_convert(lambda inp, outp, args: Path(outp).write_bytes(b"x"))
+    # A file-path option may not be smuggled in as a free-text server path.
+    r = _post(client, output="epub", cover="/etc/passwd")
+    assert r.status_code == 422
+
+
+def test_empty_file_option_upload_is_ignored(client, set_convert):
+    captured = {}
+    set_convert(lambda inp, outp, args: (captured.update(args=args), Path(outp).write_bytes(b"x")))
+    # An empty cover part (no filename) is treated as unset, not passed through.
+    r = client.post(
+        "/convert",
+        files={
+            "file": ("book.txt", b"hi", "text/plain"),
+            "cover": ("", b"", "application/octet-stream"),
+        },
+        data={"output_format": "epub"},
+    )
+    assert r.status_code == 200, r.text
+    assert "--cover" not in captured["args"]
+
+
+def test_unexpected_error_returns_500(client, set_convert, monkeypatch):
+    set_convert(lambda inp, outp, args: Path(outp).write_bytes(b"converted"))
+
+    # A non-HTTPException raised after a successful conversion (here, building the
+    # response) is wrapped as a 500 and the temp dir is still cleaned up.
+    def boom(*a, **k):
+        raise RuntimeError("kaboom")
+
+    monkeypatch.setattr(convert_mod, "FileResponse", boom)
+    r = _post(client)
+    assert r.status_code == 500
+    assert "kaboom" in r.json()["detail"]
